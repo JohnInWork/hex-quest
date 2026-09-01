@@ -1,0 +1,4175 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<title>Hex Quest</title>
+<style>
+  :root{
+    --bg:#0d0d0d;
+    --ui:#ffffff;
+    --grass:#59c02d;
+    --sand:#f6c52c;
+    --water:#77bfff;
+    --fog:#3a3a3a;
+    --grid:#7a3b16;
+    --hl:#ffd54a;
+    --bad:#ff5a6a;
+  }
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--ui);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;}
+  #wrap{position:relative;height:100%;overflow:hidden;}
+  canvas{position:absolute;inset:0;display:block;touch-action:manipulation;cursor:pointer;}
+  /* HUD */
+  .hud{position:absolute;left:8px;top:8px;display:flex;flex-direction:column;gap:8px;align-items:flex-start;z-index:2}
+  .meter{display:flex;align-items:center;gap:6px;background:rgba(0,0,0,.35);padding:6px 10px;border-radius:10px;backdrop-filter: blur(4px);}
+  .meter b{font-weight:600}
+  .meter .icons{display:flex;gap:4px}
+  .icon{font-size:20px;line-height:1}
+  .counter{min-width:24px;text-align:center;font-variant-numeric:tabular-nums}
+  #scoreBox{position:absolute;right:8px;top:8px;display:flex;flex-direction:column;gap:8px;z-index:2}
+  #scoreBox .card{background:rgba(0,0,0,.35);padding:8px 12px;border-radius:10px;backdrop-filter: blur(4px);}
+  #questBox{position:absolute;top:8px;left:50%;transform:translateX(-50%);z-index:2;min-width:280px;max-width:400px}
+  #questBox .questContent{background:rgba(0,0,0,.4);padding:10px 14px;border-radius:12px;backdrop-filter:blur(6px);display:flex;align-items:center;gap:10px;border:2px solid rgba(102,126,234,0.5);box-shadow:0 4px 12px rgba(0,0,0,.3)}
+  #questBox .questIcon{font-size:28px;line-height:1}
+  #questBox .questInfo{flex:1}
+  #questBox .questTitle{font-size:11px;color:#aaa;margin-bottom:2px;font-weight:600}
+  #questBox .questText{font-size:14px;font-weight:600;margin-bottom:4px}
+  #questBox .questProgress{display:flex;align-items:center;gap:8px}
+  #questBox .questProgressBar{flex:1;height:6px;background:rgba(255,255,255,0.15);border-radius:3px;overflow:hidden}
+  #questBox .questProgressFill{height:100%;background:linear-gradient(90deg, #667eea 0%, #764ba2 100%);transition:width 0.3s ease}
+  #questBox .questProgressText{font-size:11px;color:#ccc;min-width:40px}
+  #questBox .questReward{font-size:16px;font-weight:700;color:#ffd700;white-space:nowrap}
+  #buttons{position:absolute;right:8px;bottom:8px;display:flex;gap:8px;z-index:2}
+  button{background:#ffffff; border:0; color:#111; padding:10px 14px; border-radius:10px; font-weight:600}
+  button:active{transform:translateY(1px)}
+  /* Game over overlay */
+  #over{position:absolute;inset:0;display:none;place-items:center;background:rgba(0,0,0,.6);backdrop-filter: blur(2px);z-index:3;overflow-y:auto;padding:20px 0}
+  #over .panel{background:#111; padding:22px; border-radius:14px; text-align:center; width:min(92vw,420px)}
+  #over h2{margin:4px 0 12px}
+  #over .big{font-size:38px;margin:0 0 16px}
+  #over .leaderboardTable .leaderboardRow{display:grid;grid-template-columns:50px 40px 1fr 70px;gap:10px;padding:10px 16px;align-items:center;border-bottom:1px solid rgba(255,255,255,0.1);font-size:14px}
+  #over .leaderboardTable .leaderboardRow:last-child{border-bottom:none}
+  #over .leaderboardTable .leaderboardRow.player{background:rgba(102,126,234,0.2);border-left:3px solid #667eea}
+  #over .leaderboardTable .rank{font-weight:700;text-align:center}
+  #over .leaderboardTable .rank.gold{color:#ffd700}
+  #over .leaderboardTable .rank.silver{color:#c0c0c0}
+  #over .leaderboardTable .rank.bronze{color:#cd7f32}
+  #over .leaderboardTable .charIcon{font-size:24px;text-align:center}
+  #over .leaderboardTable .playerName{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #over .leaderboardTable .score{font-weight:600;text-align:right;color:#4ade80}
+  #legend{position:absolute;left:8px;bottom:8px;background:rgba(0,0,0,.3);padding:8px 10px;border-radius:10px;font-size:12px;line-height:1.35;max-width:min(92vw,520px)}
+  #legend b{font-weight:700}
+  /* Notifications */
+  #notifications{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);z-index:2;pointer-events:none;width:min(90vw,600px);display:flex;flex-direction:column;gap:8px;max-height:300px;overflow-y:auto}
+  .notification{background:rgba(13,13,13,0.95);padding:12px 20px;border-radius:12px;backdrop-filter:blur(10px);border:2px solid rgba(102,126,234,0.6);box-shadow:0 6px 20px rgba(0,0,0,.7);animation:notifySlideUp 0.4s ease-out;font-size:15px;font-weight:600;text-align:center}
+  .notification.positive{border-color:#4ade80;color:#4ade80}
+  .notification.negative{border-color:#ff5a6a;color:#ff5a6a}
+  .notification.neutral{border-color:#ffd54a;color:#ffd54a}
+  @keyframes notifySlideUp{
+    0%{opacity:0;transform:translateY(40px) scale(0.95)}
+    100%{opacity:1;transform:translateY(0) scale(1)}
+  }
+  @media (max-width:560px){
+    #legend{display:none}
+  }
+  /* Main Menu */
+  #mainMenu{position:absolute;inset:0;display:none;place-items:center;background:linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);z-index:5;}
+  #mainMenu .container{text-align:center;padding:30px;max-width:500px}
+  #mainMenu h1{font-size:56px;margin:0 0 10px;background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-shadow:0 2px 20px rgba(102,126,234,0.3)}
+  #mainMenu .subtitle{font-size:18px;color:#b0b0d0;margin:0 0 30px}
+  #mainMenu .stats{display:flex;justify-content:center;gap:20px;margin:30px 0;font-size:20px}
+  #mainMenu .stat{background:rgba(255,255,255,0.1);padding:12px 20px;border-radius:12px;backdrop-filter:blur(10px)}
+  #mainMenu .stat b{display:block;font-size:32px;margin-bottom:4px}
+  #mainMenu .menuButtons{display:flex;flex-direction:column;gap:12px;margin-top:20px}
+  #mainMenu button{width:100%;padding:16px;font-size:18px;border-radius:14px;cursor:pointer;transition:all 0.3s;background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);border:none;color:white}
+  #mainMenu button:hover{transform:translateY(-2px);box-shadow:0 10px 30px rgba(102,126,234,0.4)}
+  #mainMenu button:active{transform:translateY(0)}
+  #mainMenu .resetProgress{margin-top:40px;font-size:11px;color:#666;background:none;padding:6px;text-decoration:underline;cursor:pointer}
+  #mainMenu .resetProgress:hover{color:#888}
+  #mainMenu .playerNameSection{margin:20px 0;text-align:left}
+  #mainMenu .playerNameSection label{display:block;font-size:16px;margin-bottom:8px;color:#b0b0d0}
+  #mainMenu .playerNameSection input{width:100%;padding:12px;font-size:16px;border-radius:10px;border:2px solid #667eea;background:rgba(255,255,255,0.1);color:white;outline:none;transition:all 0.3s}
+  #mainMenu .playerNameSection input:focus{border-color:#7a8ef5;background:rgba(255,255,255,0.15)}
+  #mainMenu .playerNameSection input::placeholder{color:#888}
+  #mainMenu .nameWarning{font-size:12px;color:#ffd54a;margin:6px 0 0;text-align:center}
+  /* Shop */
+  #shop{position:absolute;inset:0;display:none;place-items:center;background:linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);z-index:5;overflow-y:auto}
+  #shop .container{padding:30px;max-width:600px;width:90%}
+  #shop h1{font-size:42px;margin:0 0 10px;text-align:center;background:linear-gradient(135deg, #f093fb 0%, #f5576c 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+  #shop .balance{text-align:center;font-size:24px;margin-bottom:30px;background:rgba(255,255,255,0.1);padding:12px;border-radius:12px}
+  #shop .tabs{display:flex;gap:10px;margin-bottom:20px;justify-content:center}
+  #shop .tab{background:rgba(255,255,255,0.1);padding:12px 24px;border-radius:10px;cursor:pointer;font-weight:600;transition:all 0.3s;border:2px solid transparent}
+  #shop .tab:hover{background:rgba(255,255,255,0.15)}
+  #shop .tab.active{background:rgba(102,126,234,0.3);border-color:#667eea}
+  #shop .items{display:grid;grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));gap:16px;margin-bottom:20px}
+  #shop .item{background:rgba(255,255,255,0.08);padding:20px;border-radius:16px;text-align:center;cursor:pointer;transition:all 0.3s;border:2px solid transparent}
+  #shop .item:hover{transform:translateY(-4px);background:rgba(255,255,255,0.12);border-color:rgba(102,126,234,0.5)}
+  #shop .item.owned{border-color:#4ade80;background:rgba(74,222,128,0.1)}
+  #shop .item.selected{border-color:#667eea;box-shadow:0 0 20px rgba(102,126,234,0.6)}
+  #shop .item .icon{font-size:48px;margin-bottom:8px}
+  #shop .item .itemName{font-size:16px;font-weight:600;margin-bottom:4px}
+  #shop .item .description{font-size:11px;color:#b0b0d0;margin-bottom:8px;line-height:1.3;min-height:32px}
+  #shop .item .price{font-size:18px;color:#ffd700;font-weight:600}
+  #shop .item .status{font-size:12px;color:#4ade80;margin-top:4px}
+  #shop .shopButtons{display:flex;gap:12px}
+  #shop button{flex:1;padding:14px;font-size:16px;border-radius:12px;cursor:pointer;border:none;font-weight:600;transition:all 0.3s}
+  #shop .backBtn{background:#666;color:white}
+  #shop .backBtn:hover{background:#777}
+  #shop .selectBtn{background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);color:white}
+  #shop .selectBtn:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(102,126,234,0.4)}
+  #shop .selectBtn:disabled{background:#444;cursor:not-allowed;transform:none}
+  /* Hide game UI when not playing */
+  .hideWhenNotPlaying{display:none}
+  /* Event dialog */
+  #eventDialog{position:absolute;inset:0;display:none;place-items:center;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);z-index:10}
+  #eventDialog .panel{background:#1a1a2e;padding:24px;border-radius:16px;text-align:center;width:min(92vw,480px);border:2px solid #667eea;box-shadow:0 10px 40px rgba(0,0,0,.6)}
+  #eventDialog h3{margin:0 0 16px;font-size:24px;color:#667eea}
+  #eventDialog .eventResources{display:flex;justify-content:center;gap:16px;margin-bottom:16px;flex-wrap:wrap}
+  #eventDialog .eventResources .resourceItem{background:rgba(255,255,255,0.1);padding:6px 12px;border-radius:8px;font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px}
+  #eventDialog .eventText{font-size:16px;line-height:1.6;margin-bottom:20px;color:#d0d0e0}
+  #eventDialog .eventChoices{display:flex;flex-direction:column;gap:10px}
+  #eventDialog .eventChoices button{width:100%;padding:14px;font-size:16px;border-radius:12px;cursor:pointer;border:2px solid #667eea;background:rgba(102,126,234,0.2);color:white;font-weight:600;transition:all 0.3s}
+  #eventDialog .eventChoices button:hover{background:rgba(102,126,234,0.4);transform:translateY(-2px)}
+  #eventDialog .eventChoices button:active{transform:translateY(0)}
+  #eventDialog .eventResult{margin-top:16px;padding:12px;border-radius:8px;font-size:15px;line-height:1.5;display:none}
+  #eventDialog .eventResult.show{display:block}
+  #eventDialog .eventResult.positive{background:rgba(74,222,128,0.2);border:1px solid #4ade80;color:#4ade80}
+  #eventDialog .eventResult.negative{background:rgba(255,90,106,0.2);border:1px solid #ff5a6a;color:#ff5a6a}
+  #eventDialog .eventResult.mixed{background:rgba(255,213,74,0.2);border:1px solid #ffd54a;color:#ffd54a}
+  #eventDialog .continueBtn{margin-top:12px;padding:12px 24px;border-radius:10px;background:#667eea;color:white;border:none;cursor:pointer;font-weight:600;display:none}
+  #eventDialog .continueBtn.show{display:inline-block}
+  #eventDialog .continueBtn:hover{background:#7a8ef5}
+  /* Dragon Death Dialog */
+  #dragonDeathDialog{position:absolute;inset:0;display:none;place-items:center;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);z-index:15}
+  #dragonDeathDialog .panel{background:linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);padding:40px;border-radius:20px;text-align:center;width:min(92vw,500px);border:3px solid #ff5a6a;box-shadow:0 0 60px rgba(255,90,106,0.8), 0 10px 50px rgba(0,0,0,.9);animation:dragonDeathShake 0.5s}
+  #dragonDeathDialog .dragonIcon{font-size:120px;margin:20px 0;animation:dragonDeathPulse 2s infinite}
+  #dragonDeathDialog h2{font-size:36px;margin:20px 0;color:#ff5a6a;text-shadow:0 0 20px rgba(255,90,106,0.8)}
+  #dragonDeathDialog .message{font-size:20px;line-height:1.6;margin:20px 0;color:#d0d0e0}
+  #dragonDeathDialog button{padding:16px 32px;font-size:18px;border-radius:12px;background:#ff5a6a;color:white;border:none;cursor:pointer;font-weight:600;margin-top:20px;transition:all 0.3s}
+  #dragonDeathDialog button:hover{background:#ff7a8a;transform:translateY(-2px);box-shadow:0 8px 20px rgba(255,90,106,0.4)}
+  @keyframes dragonDeathShake{0%,100%{transform:translateX(0)}10%,30%,50%,70%,90%{transform:translateX(-10px)}20%,40%,60%,80%{transform:translateX(10px)}}
+  @keyframes dragonDeathPulse{0%,100%{transform:scale(1);filter:brightness(1)}50%{transform:scale(1.1);filter:brightness(1.3)}}
+  /* Treasure Dialog */
+  #treasureDialog{position:absolute;inset:0;display:none;place-items:center;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);z-index:15}
+  #treasureDialog .panel{background:linear-gradient(135deg, #ffd700 0%, #ffed4e 50%, #ffd700 100%);padding:40px;border-radius:20px;text-align:center;width:min(92vw,500px);border:3px solid #fff;box-shadow:0 0 60px rgba(255,215,0,0.8), 0 10px 50px rgba(0,0,0,.9);animation:treasureBounce 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55)}
+  #treasureDialog .treasureIcon{font-size:120px;margin:20px 0;animation:treasureSpin 3s infinite}
+  #treasureDialog h2{font-size:36px;margin:20px 0;color:#1a1a2e;text-shadow:0 2px 4px rgba(255,255,255,0.5)}
+  #treasureDialog .message{font-size:20px;line-height:1.6;margin:20px 0;color:#1a1a2e;font-weight:600}
+  #treasureDialog .coinAmount{font-size:48px;font-weight:700;color:#1a1a2e;margin:20px 0;text-shadow:0 2px 8px rgba(255,255,255,0.6)}
+  #treasureDialog button{padding:16px 32px;font-size:18px;border-radius:12px;background:#1a1a2e;color:#ffd700;border:none;cursor:pointer;font-weight:600;margin-top:20px;transition:all 0.3s}
+  #treasureDialog button:hover{background:#2a2a3e;transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,0,0,0.4)}
+  @keyframes treasureBounce{0%{transform:scale(0.3) rotate(-5deg);opacity:0}50%{transform:scale(1.05) rotate(2deg)}100%{transform:scale(1) rotate(0);opacity:1}}
+  @keyframes treasureSpin{0%{transform:rotate(0deg) scale(1)}25%{transform:rotate(-5deg) scale(1.05)}50%{transform:rotate(5deg) scale(1)}75%{transform:rotate(-5deg) scale(1.05)}100%{transform:rotate(0deg) scale(1)}}
+  /* Leaderboard */
+  #leaderboard{position:absolute;inset:0;display:none;place-items:center;background:linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);z-index:5;overflow-y:auto}
+  #leaderboard .container{padding:30px;max-width:600px;width:90%}
+  #leaderboard h1{font-size:42px;margin:0 0 10px;text-align:center;background:linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+  #leaderboard .leaderboardTable{background:rgba(255,255,255,0.05);border-radius:16px;overflow:hidden;margin-bottom:20px}
+  #leaderboard .leaderboardRow{display:grid;grid-template-columns:60px 50px 1fr 80px;gap:12px;padding:14px 20px;align-items:center;border-bottom:1px solid rgba(255,255,255,0.1);transition:all 0.3s}
+  #leaderboard .leaderboardRow:last-child{border-bottom:none}
+  #leaderboard .leaderboardRow:hover{background:rgba(255,255,255,0.08)}
+  #leaderboard .leaderboardRow.header{background:rgba(102,126,234,0.3);font-weight:700;font-size:14px}
+  #leaderboard .leaderboardRow.header:hover{background:rgba(102,126,234,0.3)}
+  #leaderboard .leaderboardRow.player{background:rgba(102,126,234,0.2);border:2px solid #667eea;animation:highlightPlayer 2s ease-in-out infinite}
+  #leaderboard .rank{font-size:20px;font-weight:700;text-align:center}
+  #leaderboard .rank.gold{color:#ffd700}
+  #leaderboard .rank.silver{color:#c0c0c0}
+  #leaderboard .rank.bronze{color:#cd7f32}
+  #leaderboard .charIcon{font-size:28px;text-align:center}
+  #leaderboard .playerName{font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #leaderboard .score{font-size:18px;font-weight:600;text-align:right;color:#4ade80}
+  #leaderboard .backBtn{width:100%;padding:14px;font-size:16px;border-radius:12px;cursor:pointer;border:none;font-weight:600;background:#666;color:white;transition:all 0.3s}
+  #leaderboard .backBtn:hover{background:#777}
+  @keyframes highlightPlayer{0%,100%{box-shadow:0 0 20px rgba(102,126,234,0.5)}50%{box-shadow:0 0 30px rgba(102,126,234,0.8)}}
+  /* Damage Effect */
+  #damageEffect{position:fixed;inset:0;pointer-events:none;z-index:100;opacity:0;background:radial-gradient(circle at center, transparent 30%, rgba(255,0,0,0.4) 100%);transition:opacity 0.1s}
+  #damageEffect.show{animation:damageFlash 0.5s ease-out}
+  @keyframes damageFlash{0%{opacity:0}20%{opacity:1}100%{opacity:0}}
+  /* Achievements */
+  #achievements{position:absolute;inset:0;display:none;place-items:center;background:linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);z-index:5;overflow-y:auto}
+  #achievements .container{padding:30px;max-width:600px;width:90%}
+  #achievements h1{font-size:42px;margin:0 0 10px;text-align:center;background:linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+  #achievements .achievementsList{display:flex;flex-direction:column;gap:16px;margin-bottom:20px}
+  #achievements .achievement{background:rgba(255,255,255,0.08);padding:20px;border-radius:16px;display:flex;gap:16px;align-items:center;border:2px solid transparent;transition:all 0.3s}
+  #achievements .achievement.unlocked{border-color:#4ade80;background:rgba(74,222,128,0.1)}
+  #achievements .achievement.locked{opacity:0.5}
+  #achievements .achievement .icon{font-size:48px;min-width:60px;text-align:center}
+  #achievements .achievement .info{flex:1}
+  #achievements .achievement .name{font-size:18px;font-weight:600;margin-bottom:4px}
+  #achievements .achievement .description{font-size:14px;color:#b0b0d0;margin-bottom:6px}
+  #achievements .achievement .reward{font-size:16px;color:#ffd700;font-weight:600}
+  #achievements .achievement .status{font-size:14px;color:#4ade80;margin-top:6px}
+  #achievements .backBtn{width:100%;padding:14px;font-size:16px;border-radius:12px;cursor:pointer;border:none;font-weight:600;background:#666;color:white;transition:all 0.3s}
+  #achievements .backBtn:hover{background:#777}
+  /* Achievement Notification */
+  .achievementNotification{position:fixed;top:50%;left:50%;transform:translate(-50%, -50%);z-index:1000;background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);padding:30px 40px;border-radius:20px;text-align:center;border:3px solid #ffd700;box-shadow:0 0 40px rgba(255,215,0,0.6), 0 10px 50px rgba(0,0,0,0.8);animation:achievementPop 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);min-width:320px}
+  .achievementNotification .title{font-size:24px;font-weight:700;margin-bottom:12px;color:#ffd700;text-shadow:0 2px 10px rgba(0,0,0,0.5)}
+  .achievementNotification .icon{font-size:64px;margin:10px 0}
+  .achievementNotification .name{font-size:20px;font-weight:600;margin-bottom:8px;color:#fff}
+  .achievementNotification .reward{font-size:18px;color:#4ade80;font-weight:600;margin-top:10px}
+  @keyframes achievementPop{0%{transform:translate(-50%, -50%) scale(0.3);opacity:0}50%{transform:translate(-50%, -50%) scale(1.1)}100%{transform:translate(-50%, -50%) scale(1);opacity:1}}
+  /* Encyclopedia */
+  #encyclopedia{position:absolute;inset:0;display:none;place-items:center;background:linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);z-index:5;overflow-y:auto}
+  #encyclopedia .container{padding:30px;max-width:700px;width:90%}
+  #encyclopedia h1{font-size:42px;margin:0 0 20px;text-align:center;background:linear-gradient(135deg, #4ade80 0%, #22c55e 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+  #encyclopedia .section{margin-bottom:30px}
+  #encyclopedia .section h2{font-size:24px;margin:0 0 16px;color:#ffd700}
+  #encyclopedia .encItems{display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:16px}
+  #encyclopedia .encItem{background:rgba(255,255,255,0.08);padding:16px;border-radius:12px;border:2px solid rgba(255,255,255,0.1);transition:all 0.3s}
+  #encyclopedia .encItem:hover{border-color:rgba(102,126,234,0.5);transform:translateY(-2px)}
+  #encyclopedia .encItem .icon{font-size:48px;text-align:center;margin-bottom:8px}
+  #encyclopedia .encItem .name{font-size:18px;font-weight:600;margin-bottom:8px;text-align:center;color:#ffd700}
+  #encyclopedia .encItem .desc{font-size:14px;line-height:1.5;color:#d0d0e0}
+  #encyclopedia .backBtn{width:100%;padding:14px;font-size:16px;border-radius:12px;cursor:pointer;border:none;font-weight:600;background:#666;color:white;transition:all 0.3s;margin-top:20px}
+  #encyclopedia .backBtn:hover{background:#777}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="game"></canvas>
+
+  <!-- Main Menu -->
+  <div id="mainMenu">
+    <div class="container">
+      <h1>🔶 Hex Quest 🔶</h1>
+      <p class="subtitle">Исследуй бесконечный мир гексагонов</p>
+      
+      <div class="stats">
+        <div class="stat">
+          <b id="menuBestScore">0</b>
+          <span>Рекорд</span>
+        </div>
+        <div class="stat">
+          <b id="menuCoins">0</b>
+          <span>🪙 Монет</span>
+        </div>
+      </div>
+      
+      <div class="playerNameSection">
+        <label for="playerNameInput">👤 Ваше имя:</label>
+        <input type="text" id="playerNameInput" maxlength="20" placeholder="Введите имя">
+        <p class="nameWarning">⚠️ Без имени вы не попадёте в таблицу лидеров</p>
+      </div>
+      
+      <div style="margin:15px 0;text-align:left">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;color:#d0d0e0">
+          <input type="checkbox" id="useTexturesCheckbox" style="width:18px;height:18px;cursor:pointer">
+          <span>Использовать текстуры</span>
+        </label>
+      </div>
+      
+      <div class="menuButtons">
+        <button id="startGame" style="grid-column: 1 / -1;">▶️ Начать играть</button>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%;">
+          <button id="openShop">🏪 Магазин</button>
+          <button id="openLeaderboard">🏆 Лидеры</button>
+          <button id="openAchievements">🏅 Достижения</button>
+          <button id="openEncyclopedia">📖 Энциклопедия</button>
+        </div>
+      </div>
+      
+      <!-- Кнопки звука отдельно -->
+      <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.1); display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <button class="soundToggle" onclick="toggleSound()" style="padding: 8px 12px; font-size: 13px; background: rgba(255,255,255,0.08);">🔊 Звуки</button>
+        <button class="musicToggle" onclick="toggleMusic()" style="padding: 8px 12px; font-size: 13px; background: rgba(255,255,255,0.08);">🎵 Музыка</button>
+      </div>
+      
+      <div style="margin-top:20px;display:flex;align-items:center;gap:10px;justify-content:center">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:11px;color:#666;user-select:none">
+          <input type="checkbox" id="devModeCheckbox" style="width:14px;height:14px;cursor:pointer">
+          <span>Режим разработчика</span>
+        </label>
+      </div>
+      
+      <div class="resetProgress" id="resetProgressBtn">сбросить прогресс</div>
+    </div>
+  </div>
+
+  <!-- Shop -->
+  <div id="shop">
+    <div class="container">
+      <h1>🏪 Магазин монет</h1>
+      <div class="balance">🪙 Баланс: <b id="shopCoins">0</b></div>
+      
+      <div class="tabs">
+        <div class="tab active" id="tabCharacters">👥 Персонажи</div>
+        <div class="tab" id="tabUpgrades">⬆️ Улучшения</div>
+      </div>
+      
+      <div class="items" id="shopItems"></div>
+      
+      <div class="shopButtons">
+        <button class="backBtn" id="shopBack">◀️ Назад</button>
+        <button class="selectBtn" id="shopSelect" disabled>Выбрать иконку</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Leaderboard -->
+  <div id="leaderboard">
+    <div class="container">
+      <h1>🏆 Таблица лидеров</h1>
+      
+      <div class="leaderboardTable" id="leaderboardTable">
+        <!-- Таблица будет заполнена JavaScript -->
+      </div>
+      
+      <button class="backBtn" id="leaderboardBack">◀️ Назад</button>
+    </div>
+  </div>
+
+  <!-- Achievements -->
+  <div id="achievements">
+    <div class="container">
+      <h1>🏅 Достижения</h1>
+      
+      <div class="achievementsList" id="achievementsList">
+        <!-- Достижения будут заполнены JavaScript -->
+      </div>
+      
+      <button class="backBtn" id="achievementsBack">◀️ Назад</button>
+    </div>
+  </div>
+
+  <!-- Encyclopedia -->
+  <div id="encyclopedia">
+    <div class="container">
+      <h1>📖 Энциклопедия</h1>
+      
+      <div class="section">
+        <h2>🗺️ Типы местности</h2>
+        <div class="encItems">
+          <div class="encItem">
+            <div class="icon">🟩</div>
+            <div class="name">Трава</div>
+            <div class="desc">Базовая местность. Стоимость хода: 1 еда. Награда: +1 очко.</div>
+          </div>
+          <div class="encItem">
+            <div class="icon">🟨</div>
+            <div class="name">Песок</div>
+            <div class="desc">Побережье у воды. Стоимость хода: 1 еда. Награда: +1 очко.<br><b>💎 Сокровища:</b> 10% шанс найти сундук с 5-20 монетами (с улучшением x2 монет до 40)!<br><b>⚠️ Жара:</b> 10% шанс потерять дополнительную еду.</div>
+          </div>
+          <div class="encItem">
+            <div class="icon">🟦</div>
+            <div class="name">Вода</div>
+            <div class="desc">Непроходимая местность. Нельзя пересечь.</div>
+          </div>
+          <div class="encItem">
+            <div class="icon">🏜️</div>
+            <div class="name">Пустыня</div>
+            <div class="desc">Жаркая местность на средних расстояниях от спавна. Стоимость хода: 1 еда. Награда: +2 очка. Тигры и кактусы спавнятся здесь!</div>
+          </div>
+          <div class="encItem">
+            <div class="icon">❄️</div>
+            <div class="name">Снег</div>
+            <div class="desc">Опасная местность далеко от спавна. Стоимость хода: 2 еды. Награда: +3 очка. Черепа часто спавнятся здесь!</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>🏛️ Объекты</h2>
+        <div class="encItems">
+          <div class="encItem">
+            <div class="icon">🏠</div>
+            <div class="name">Дом</div>
+            <div class="desc">Награда: +4 еды, +1 очко. Одноразовое использование.</div>
+          </div>
+          <div class="encItem">
+            <div class="icon">🏰</div>
+            <div class="name">Замок</div>
+            <div class="desc">Награда: +1 меч, +1 очко. Одноразовое использование.</div>
+          </div>
+          <div class="encItem">
+            <div class="icon">🌲</div>
+            <div class="name">Лес</div>
+            <div class="desc">Труднопроходимая местность. Стоимость хода: 2 еды (1 для Космонавта/Следопыта). Награда: +2 очка. Только на траве.</div>
+          </div>
+          <div class="encItem">
+            <div class="icon">🌵</div>
+            <div class="name">Кактус</div>
+            <div class="desc">Труднопроходимая местность пустыни. Стоимость хода: 2 еды (1 для Космонавта/Следопыта). Награда: +2 очка. Только в пустыне.</div>
+          </div>
+          <div class="encItem">
+            <div class="icon">⛰️</div>
+            <div class="name">Гора</div>
+            <div class="desc">Очень труднопроходимая местность. Стоимость хода: 3 еды (1 для Космонавта/Следопыта). Награда: +3 очка. Только на траве.</div>
+          </div>
+          <div class="encItem">
+            <div class="icon">🪙</div>
+            <div class="name">Монета</div>
+            <div class="desc">Награда: +1 монета, +1 очко. Одноразовое использование.</div>
+          </div>
+          <div class="encItem">
+            <div class="icon">🎁</div>
+            <div class="name">Сундук</div>
+            <div class="desc">РЕДКИЙ! Награда: от 5 до 20 монет (случайно), +3 очка. Спавнится только в пустыне и на снегу. Одноразовое использование.</div>
+          </div>
+          <div class="encItem">
+            <div class="icon">🗼</div>
+            <div class="name">Маяк</div>
+            <div class="desc">Позволяет осмотреть окрестности. Награда: +1 очко. Опции: открыть большую область радиусом 9 (4 еды или 3 меча) или малую область радиусом 6 (бесплатно).</div>
+          </div>
+          <div class="encItem">
+            <div class="icon">❓</div>
+            <div class="name">Случайное событие</div>
+            <div class="desc">Запускает случайное событие с выбором. Результат зависит от ваших решений. Может быть выгодным или опасным!</div>
+          </div>
+          <div class="encItem">
+            <div class="icon">🌀</div>
+            <div class="name">Портал</div>
+            <div class="desc">ОЧЕНЬ РЕДКИЙ! Телепортирует вас на случайное место в радиусе ±500 клеток от текущей позиции (минимум 100 клеток). Награда: +10 очков. Одноразовое использование.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>👹 Враги</h2>
+        <div class="encItems">
+          <div class="encItem">
+            <div class="icon">🐺</div>
+            <div class="name">Волк</div>
+            <div class="desc">С мечом: -1 меч, +4 еды, +4 очка. Без меча: -1 здоровье. Встречается на траве и песке, НЕ спавнится на снегу и в пустыне. Одноразовое использование.</div>
+          </div>
+          <div class="encItem">
+            <div class="icon">🐅</div>
+            <div class="name">Тигр</div>
+            <div class="desc">С мечом: -2 меча, +5 еды, +7 очков. Без мечей: -2 здоровья! Встречается только в пустыне. Одноразовое использование.</div>
+          </div>
+          <div class="encItem">
+            <div class="icon">💀</div>
+            <div class="name">Череп</div>
+            <div class="desc">С мечом: -2 меча, +6 еды, +10 очков. Без мечей: -1 здоровье. Часто встречается на снегу, очень редко на траве/песке. Одноразовое использование.</div>
+          </div>
+          <div class="encItem">
+            <div class="icon">🐉</div>
+            <div class="name">Дракон</div>
+            <div class="desc">ЛЕГЕНДАРНЫЙ БОСС! Требуется 15 мечей для победы: -15 мечей, +35 очков. Без 15 мечей: мгновенная смерть! Крайне редко встречается в снежном биоме.</div>
+          </div>
+        </div>
+      </div>
+      
+      <button class="backBtn" id="encyclopediaBack">◀️ Назад</button>
+    </div>
+  </div>
+
+  <!-- HUD -->
+  <div class="hud">
+    <div class="meter" id="hpBox" style="display:flex">
+      <div class="icons" id="hpIcons"></div>
+    </div>
+    <div class="meter" id="foodBox" style="display:flex">
+      <span class="icon">🍗</span>
+      <div class="icons" id="foodIcons"></div>
+    </div>
+    <div class="meter" id="swordBox" style="display:flex">
+      <span class="icon">🗡️</span>
+      <div class="icons" id="swordIcons"></div>
+    </div>
+  </div>
+
+  <div id="scoreBox">
+    <div class="card">Очки: <b id="score">0</b></div>
+    <div class="card">Рекорд: <b id="best">0</b></div>
+    <div class="card">🪙 Монеты: <b id="coinsDisplay">0</b></div>
+  </div>
+
+  <!-- Quest Display -->
+  <div id="questBox" style="display:none">
+    <div class="questContent">
+      <div class="questIcon" id="questIcon">📋</div>
+      <div class="questInfo">
+        <div class="questTitle">Задание</div>
+        <div class="questText" id="questText">Посетите 3 дома</div>
+        <div class="questProgress">
+          <div class="questProgressBar">
+            <div class="questProgressFill" id="questProgressFill" style="width:0%"></div>
+          </div>
+          <div class="questProgressText" id="questProgressText">0 / 3</div>
+        </div>
+      </div>
+      <div class="questReward" id="questReward">+5🪙</div>
+    </div>
+  </div>
+
+  <div id="buttons">
+    <button id="new">Новая карта</button>
+    <button id="openAchievementsInGame">🏅 Достижения</button>
+    <button id="openEncyclopediaInGame">📖 Энциклопедия</button>
+    <button id="backToMenu">В меню</button>
+  </div>
+  
+  <!-- Кнопки звука отдельно -->
+  <div id="soundButtons" style="position:absolute;right:8px;bottom:52px;display:none;flex-direction:column;gap:6px;z-index:2">
+    <button class="soundToggle" onclick="toggleSound()" style="padding:6px 10px;font-size:11px;background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.2);backdrop-filter:blur(4px);">🔊</button>
+    <button class="musicToggle" onclick="toggleMusic()" style="padding:6px 10px;font-size:11px;background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.2);backdrop-filter:blur(4px);">🎵</button>
+  </div>
+
+  <!-- Developer Mode Cheats -->
+  <div id="devCheats" style="position:absolute;right:8px;top:120px;display:none;flex-direction:column;gap:6px;z-index:2">
+    <div style="background:rgba(255,200,0,0.15);padding:6px 10px;border-radius:8px;font-size:11px;font-weight:600;color:#ffc800;text-align:center;border:1px solid #ffc800">DEV MODE</div>
+    <button id="cheatHp" style="padding:6px 10px;font-size:12px;background:#4ade80;border:none;border-radius:6px;cursor:pointer;font-weight:600">+1 ❤️</button>
+    <button id="cheatSword" style="padding:6px 10px;font-size:12px;background:#667eea;border:none;border-radius:6px;cursor:pointer;font-weight:600">+3 ⚔️</button>
+    <button id="cheatFood" style="padding:6px 10px;font-size:12px;background:#f59e0b;border:none;border-radius:6px;cursor:pointer;font-weight:600">+10 🍗</button>
+    <button id="cheatCoins" style="padding:6px 10px;font-size:12px;background:#ffd700;border:none;border-radius:6px;cursor:pointer;font-weight:600">+10 🪙</button>
+    <button id="cheatScore" style="padding:6px 10px;font-size:12px;background:#a855f7;border:none;border-radius:6px;cursor:pointer;font-weight:600">+20 🎯</button>
+  </div>
+
+  <div id="over">
+    <div class="panel" style="max-width:600px">
+      <h2>Игра окончена</h2>
+      <p class="big">Ваш счёт: <b id="finalScore">0</b></p>
+      <p style="font-size:20px;margin:8px 0">🪙 Собрано монет: <b id="finalCoins">0</b></p>
+      <div id="deathReasonBox" style="background:rgba(255,90,106,0.2);border:2px solid #ff5a6a;border-radius:12px;padding:12px;margin:16px 0;display:none">
+        <p style="margin:0;font-size:16px;font-weight:600;color:#ff5a6a">💀 Причина смерти:</p>
+        <p id="deathReasonText" style="margin:8px 0 0 0;font-size:15px;color:#d0d0e0"></p>
+      </div>
+      <p id="leaderboardMessage" style="font-size:16px;margin:12px 0;color:#4ade80"></p>
+      
+      <!-- Мини таблица лидеров -->
+      <div style="margin:20px 0">
+        <h3 style="margin:0 0 12px;font-size:20px;color:#ffd700">🏆 Топ-10 игроков</h3>
+        <div class="leaderboardTable" id="gameOverLeaderboard" style="background:rgba(255,255,255,0.05);border-radius:12px;overflow:hidden;max-height:300px;overflow-y:auto">
+          <!-- Таблица будет заполнена JavaScript -->
+        </div>
+      </div>
+      
+      <p style="font-size:14px;margin-top:16px">Нажмите «Сыграть ещё», чтобы попробовать набрать больше очков.</p>
+      <div style="margin-top:14px;display:flex;gap:8px;justify-content:center">
+        <button id="again">Сыграть ещё</button>
+        <button id="backToMenuFromOver">В меню</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notifications container -->
+  <div id="notifications"></div>
+
+  <!-- Event Dialog -->
+  <div id="eventDialog">
+    <div class="panel">
+      <h3 id="eventTitle">❓ Случайное событие</h3>
+      <div class="eventResources" id="eventResources">
+        <div class="resourceItem">❤️ <span id="eventHp">0</span></div>
+        <div class="resourceItem">🍗 <span id="eventFood">0</span></div>
+        <div class="resourceItem">⚔️ <span id="eventSword">0</span></div>
+        <div class="resourceItem">🎯 <span id="eventScore">0</span></div>
+        <div class="resourceItem">🪙 <span id="eventCoins">0</span></div>
+      </div>
+      <p class="eventText" id="eventText"></p>
+      <div class="eventChoices" id="eventChoices"></div>
+      <div class="eventResult" id="eventResult"></div>
+      <button class="continueBtn" id="eventContinue">Продолжить</button>
+    </div>
+  </div>
+
+  <!-- Dragon Death Dialog -->
+  <div id="dragonDeathDialog">
+    <div class="panel">
+      <div class="dragonIcon">🐉</div>
+      <h2>ДРАКОН ИСТРЕБИЛ ВАС</h2>
+      <p class="message">Вы были слишком слабы, чтобы противостоять могучему дракону.<br>Вам нужно было минимум <b>15 мечей</b> для победы!</p>
+      <button id="dragonDeathBtn">Принять поражение</button>
+    </div>
+  </div>
+
+  <!-- Treasure Dialog -->
+  <div id="treasureDialog">
+    <div class="panel">
+      <div class="treasureIcon">💎</div>
+      <h2>СУНДУК С СОКРОВИЩАМИ!</h2>
+      <p class="message">Вы нашли древний сундук,<br>спрятанный в песках!</p>
+      <div class="coinAmount" id="treasureAmount">+15 🪙</div>
+      <button id="treasureBtn">Забрать сокровища</button>
+    </div>
+  </div>
+
+  <!-- краткая легенда -->
+  <div id="legend">
+    <b>📜 Правила игры:</b><br>
+    <b>Клетки:</b> Трава +1 • Песок +1 (10% 💎5-20🪙, 10% -1🍗) • 🏜️Пустыня +2 • ❄️Снег +3 (-2🍗)<br>
+    <b>Каждый ход:</b> -1 еда (🌲Лес/🌵Кактус -2, ⛰️Гора -3) • Без еды -1❤️<br>
+    <b>Объекты:</b> 🏠 +4🍗 +1🎯 • 🏰 +1⚔️ +1🎯 • 🪙 +1🎯 монета • 🎁 РЕДКО! 5-20🪙<br>
+    <b>Враги:</b> 🐺 Волк -1⚔️ +4🍗 +4🎯 • 🐅 Тигр -2⚔️ +5🍗 +7🎯 (-2❤️!)<br>
+    💀 Череп -2⚔️ +6🍗 +10🎯 • 🐉 Дракон -15⚔️ +35🎯 (или смерть!)<br>
+    ❓ Событие • 🗼 Маяк • 🌀 Портал +10🎯 телепорт<br>
+    <b>Цель:</b> Набрать максимум очков на карте 4000×4000!
+  </div>
+</div>
+
+<!-- Damage Effect Overlay -->
+<div id="damageEffect"></div>
+
+<script>
+/* ==========
+   Простые константы
+   ========== */
+const TILE = { GRASS:'grass', SAND:'sand', WATER:'water', SNOW:'snow', DESERT:'desert', FOG:'fog' };
+const OBJ  = { NONE:'none', FOREST:'forest', CACTUS:'cactus', ROCK:'rock', HOME:'home', CASTLE:'castle', MONSTER:'monster', TIGER:'tiger', SKULL:'skull', DRAGON:'dragon', COIN:'coin', CHEST:'chest', EVENT:'event', BEACON:'beacon', PORTAL:'portal' };
+
+const COLORS = {
+  grass:getCss('--grass'),
+  sand:getCss('--sand'),
+  water:getCss('--water'),
+  snow:'#e0f2ff',
+  desert:'#f4a460',
+  fog:getCss('--fog'),
+  grid:getCss('--grid'),
+  hl:getCss('--hl')
+};
+
+const BASE_HP = 6;
+const MAP_SIZE = 4000; // Фиксированный размер карты (увеличено до 4000)
+
+// Функция для получения максимального HP с учетом улучшений
+function getMaxHP(){
+  return BASE_HP + (state.upgrades.includes('maxHp') ? 1 : 0);
+}
+
+// Функция для получения начальной еды с учетом улучшений
+function getStartFood(){
+  return 10 + (state.upgrades.includes('startFood') ? 5 : 0);
+}
+
+/* ==========
+   СИСТЕМА ЗАГРУЗКИ ИКОНОК
+   ========== */
+const ICON_PATH = 'Icons/';
+const iconImages = {};
+const iconEmojis = {
+  // Объекты
+  'forest': '🌲',
+  'cactus': '🌵',
+  'rock': '⛰️',
+  'home': '🏠',
+  'castle': '🏰',
+  'monster': '🐺',
+  'tiger': '🐅',
+  'skull': '💀',
+  'dragon': '🐉',
+  'coin': '🪙',
+  'chest': '🎁',
+  'event': '❓',
+  'beacon': '🗼',
+  'portal': '🌀',
+  // Ресурсы
+  'heart': '❤️',
+  'food': '🍗',
+  'sword': '🗡️',
+  'score': '🎯',
+  'coins_hud': '🪙',
+  // Персонажи
+  'player_mage': '🧙',
+  'player_astronaut': '🧑‍🚀',
+  'player_superman': '🦸',
+  'player_vampire': '🧛',
+  'player_robot': '🤖',
+  'player_alien': '👽',
+  // Секретные персонажи
+  'player_seer': '🔮',
+  'player_warrior': '⚔️',
+  'player_ranger': '🦅',
+  // Текстуры земли
+  'tile_grass': null,
+  'tile_sand': null,
+  'tile_water': null
+};
+
+// Функция для загрузки иконки
+function loadIcon(name){
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      iconImages[name] = img;
+      resolve(true);
+    };
+    img.onerror = () => {
+      console.log(`Иконка ${name} не найдена, используем emoji`);
+      resolve(false);
+    };
+    img.src = ICON_PATH + name + '.png';
+  });
+}
+
+// Предзагрузка всех иконок
+async function preloadIcons(){
+  const iconNames = Object.keys(iconEmojis);
+  await Promise.all(iconNames.map(name => loadIcon(name)));
+  console.log('Иконки загружены:', Object.keys(iconImages));
+}
+
+/* ==========
+   СИСТЕМА ЗВУКОВ
+   ========== */
+const SOUND_PATH = 'Sounds/';
+const sounds = {};
+const music = {};
+let currentMusic = null;
+
+// Список звуковых эффектов
+const SOUND_EFFECTS = {
+  'move': 'move.mp3',           // Звук хода
+  'monster': 'monster.mp3',     // Звук боя с монстром
+  'coin': 'coin.mp3',           // Звук монетки
+  'sword': 'sword.mp3',         // Звук меча
+  'event': 'event.mp3',         // Звук события
+  'achievement': 'achievement.mp3', // Звук достижения
+  'death': 'death.mp3',         // Звук смерти
+  'click': 'click.mp3'          // Звук клика по кнопке
+};
+
+// Музыка игры (один трек)
+const GAME_MUSIC = 'music_game.mp3';
+
+// Функция для загрузки звука
+function loadSound(name, path){
+  return new Promise((resolve) => {
+    const audio = new Audio();
+    audio.preload = 'auto';
+    audio.oncanplaythrough = () => {
+      sounds[name] = audio;
+      resolve(true);
+    };
+    audio.onerror = () => {
+      console.log(`Звук ${name} не найден: ${path}`);
+      resolve(false);
+    };
+    audio.src = SOUND_PATH + path;
+  });
+}
+
+// Функция для загрузки музыки
+function loadGameMusic(){
+  return new Promise((resolve) => {
+    const audio = new Audio();
+    audio.preload = 'auto';
+    audio.loop = true;
+    audio.volume = 0.3; // Фоновая музыка тише
+    audio.oncanplaythrough = () => {
+      currentMusic = audio;
+      resolve(true);
+    };
+    audio.onerror = () => {
+      console.log(`Музыка не найдена: ${GAME_MUSIC}`);
+      resolve(false);
+    };
+    audio.src = SOUND_PATH + GAME_MUSIC;
+  });
+}
+
+// Предзагрузка всех звуков
+async function preloadSounds(){
+  const soundPromises = Object.entries(SOUND_EFFECTS).map(([name, path]) => loadSound(name, path));
+  
+  await Promise.all([...soundPromises, loadGameMusic()]);
+  console.log('Звуки загружены:', Object.keys(sounds));
+  console.log('Музыка загружена');
+}
+
+// Настройки звука (из localStorage)
+let soundEnabled = localStorage.getItem('hex-sound-enabled') !== 'false'; // по умолчанию включено
+let musicEnabled = localStorage.getItem('hex-music-enabled') !== 'false'; // по умолчанию включено
+
+// Функция воспроизведения звука
+function playSound(soundName){
+  if(!soundEnabled) return; // Если звуки выключены
+  
+  const sound = sounds[soundName];
+  if(sound){
+    try {
+      // Клонируем звук для одновременного воспроизведения
+      const soundClone = sound.cloneNode();
+      soundClone.volume = 0.5;
+      soundClone.play().catch(err => {
+        console.log(`Не удалось воспроизвести звук ${soundName}:`, err);
+      });
+    } catch(e){
+      console.log(`Ошибка при воспроизведении звука ${soundName}:`, e);
+    }
+  }
+}
+
+// Функция для запуска музыки
+function startMusic(){
+  if(!musicEnabled || !currentMusic) return;
+  
+  currentMusic.play().catch(err => {
+    console.log(`Не удалось воспроизвести музыку:`, err);
+  });
+}
+
+// Функция для остановки музыки
+function stopMusic(){
+  if(currentMusic){
+    currentMusic.pause();
+    currentMusic.currentTime = 0;
+  }
+}
+
+// Функция для паузы музыки
+function pauseMusic(){
+  if(currentMusic){
+    currentMusic.pause();
+  }
+}
+
+// Переключение звуков
+function toggleSound(){
+  soundEnabled = !soundEnabled;
+  localStorage.setItem('hex-sound-enabled', soundEnabled);
+  updateSoundButtons();
+  playSound('click'); // Проигрываем клик
+}
+
+// Переключение музыки
+function toggleMusic(){
+  musicEnabled = !musicEnabled;
+  localStorage.setItem('hex-music-enabled', musicEnabled);
+  
+  if(musicEnabled){
+    startMusic();
+  } else {
+    pauseMusic();
+  }
+  
+  updateSoundButtons();
+}
+
+// Обновление кнопок звука
+function updateSoundButtons(){
+  const soundBtns = document.querySelectorAll('.soundToggle');
+  const musicBtns = document.querySelectorAll('.musicToggle');
+  
+  soundBtns.forEach(btn => {
+    btn.textContent = soundEnabled ? '🔊 Звуки: ВКЛ' : '🔇 Звуки: ВЫКЛ';
+    btn.style.opacity = soundEnabled ? '1' : '0.6';
+  });
+  
+  musicBtns.forEach(btn => {
+    btn.textContent = musicEnabled ? '🎵 Музыка: ВКЛ' : '🎵 Музыка: ВЫКЛ';
+    btn.style.opacity = musicEnabled ? '1' : '0.6';
+  });
+}
+
+/* ==========
+   СЛУЧАЙНЫЕ СОБЫТИЯ - РЕДАКТИРУЕМЫЙ МАССИВ
+   ========== */
+const RANDOM_EVENTS = [
+  // Событие 1: Испорченная еда
+  {
+    title: '🍖 Найдена еда',
+    text: 'Вы видите на земле лежит куча еды, но никто не знает сколько она тут пролежала. Вы можете съесть эту еду, но рискуете отравиться.',
+    choices: [
+      { text: 'Взять еду', action: 'take' },
+      { text: 'Оставить', action: 'leave' }
+    ],
+    outcomes: {
+      take: [
+        // Хороший исход (50% шанс)
+        {
+          weight: 0.5,
+          type: 'positive',
+          message: '🍗 Еда оказалась свежей! +{food} еды',
+          effects: { food: [5, 10] }
+        },
+        // Плохой исход (50% шанс)
+        {
+          weight: 0.5,
+          type: 'negative',
+          message: '💔 Еда была испорчена! -{hp} здоровье, +{food} еды',
+          effects: { hp: [-1, -1], food: [1, 5] }
+        }
+      ],
+      leave: [
+        { weight: 1, type: 'positive', message: 'Вы решили не рисковать и оставили еду.', effects: {} }
+      ]
+    }
+  },
+  
+  // Событие 2: Таинственный торговец
+  {
+    title: '🧙‍♂️ Странный торговец',
+    text: 'Вы встречаете таинственного торговца. Он готов обменять ВСЕ ваши мечи на столько же еды (1 меч = 1 еда).',
+    choices: [
+      { text: 'Обменять все мечи на еду', action: 'trade' },
+      { text: 'Отказаться', action: 'refuse' }
+    ],
+    outcomes: {
+      trade: [
+        // Успех если есть хотя бы 1 меч
+        {
+          weight: 1,
+          type: 'positive',
+          message: '⚔️ Отличная сделка! Обменяли все мечи на еду',
+          effects: { food: 'allSwords', sword: 'removeAll' },
+          requirement: { sword: 1 }
+        }
+      ],
+      refuse: [
+        { weight: 1, type: 'positive', message: 'Вы отказались от сделки.', effects: {} }
+      ]
+    }
+  },
+  
+  // Событие 3: Сундук с ловушкой
+  {
+    title: '📦 Подозрительный сундук',
+    text: 'Вы нашли старый сундук! Он может быть с ловушкой. Попытаетесь открыть?',
+    choices: [
+      { text: 'Открыть сундук', action: 'open' },
+      { text: 'Не трогать', action: 'leave' }
+    ],
+    outcomes: {
+      open: [
+        // Сокровища с ловушкой (35% шанс)
+        {
+          weight: 0.35,
+          type: 'mixed',
+          message: '💰 Сундук был с ловушкой! +{coins} монет и +{food} еды, но -{hp} здоровье',
+          effects: { coins: [3, 6], food: [3, 5], hp: [-1, -1] }
+        },
+        // Безопасные сокровища (40% шанс)
+        {
+          weight: 0.4,
+          type: 'positive',
+          message: '🎉 Сундук безопасен! +{coins} монет и +{food} еды!',
+          effects: { coins: [2, 4], food: [2, 4] }
+        },
+        // Пустой сундук (25% шанс)
+        {
+          weight: 0.25,
+          type: 'negative',
+          message: '😞 Сундук оказался пустым...',
+          effects: {}
+        }
+      ],
+      leave: [
+        { weight: 1, type: 'neutral', message: 'Вы решили не рисковать и оставили сундук.', effects: {} }
+      ]
+    }
+  },
+  
+  // Событие 4: Целебный источник
+  {
+    title: '⛲ Целебный источник',
+    text: 'Вы обнаружили источник с кристально чистой водой. Легенды гласят, что такая вода может исцелять... или проклинать.',
+    choices: [
+      { text: 'Выпить воды', action: 'drink' },
+      { text: 'Пройти мимо', action: 'pass' }
+    ],
+    outcomes: {
+      drink: [
+        // Исцеление (70% шанс)
+        {
+          weight: 0.7,
+          type: 'positive',
+          message: '❤️ Вода исцелила вас! +{hp} здоровье',
+          effects: { hp: [1, 2] }
+        },
+        // Проклятие (30% шанс)
+        {
+          weight: 0.3,
+          type: 'negative',
+          message: '☠️ Вода была отравлена! -{hp} здоровье',
+          effects: { hp: [-2, -1] }
+        }
+      ],
+      pass: [
+        { weight: 1, type: 'positive', message: 'Вы решили не рисковать.', effects: {} }
+      ]
+    }
+  },
+  
+  // Событие 5: Заброшенная кузница
+  {
+    title: '🔨 Старая кузница',
+    text: 'Вы нашли заброшенную кузницу. Можно выковать оружие, используя еду как топливо. 1 еда = 1 меч. Сколько мечей хотите выковать?',
+    choices: [
+      { text: 'Выковать 1 меч (1 еда)', action: 'forge1' },
+      { text: 'Выковать 2 меча (2 еды)', action: 'forge2' },
+      { text: 'Выковать 3 меча (3 еды)', action: 'forge3' },
+      { text: 'Выковать 4 меча (4 еды)', action: 'forge4' },
+      { text: 'Выковать 5 мечей (5 еды)', action: 'forge5' },
+      { text: 'Не ковать', action: 'leave' }
+    ],
+    outcomes: {
+      forge1: [
+        {
+          weight: 1,
+          type: 'positive',
+          message: '⚔️ Вы выковали 1 меч! -1 еда, +1 меч',
+          effects: { food: [-1, -1], sword: [1, 1] },
+          requirement: { food: 1 }
+        }
+      ],
+      forge2: [
+        {
+          weight: 1,
+          type: 'positive',
+          message: '⚔️ Вы выковали 2 меча! -2 еды, +2 меча',
+          effects: { food: [-2, -2], sword: [2, 2] },
+          requirement: { food: 2 }
+        }
+      ],
+      forge3: [
+        {
+          weight: 1,
+          type: 'positive',
+          message: '⚔️ Вы выковали 3 меча! -3 еды, +3 меча',
+          effects: { food: [-3, -3], sword: [3, 3] },
+          requirement: { food: 3 }
+        }
+      ],
+      forge4: [
+        {
+          weight: 1,
+          type: 'positive',
+          message: '⚔️ Вы выковали 4 меча! -4 еды, +4 меча',
+          effects: { food: [-4, -4], sword: [4, 4] },
+          requirement: { food: 4 }
+        }
+      ],
+      forge5: [
+        {
+          weight: 1,
+          type: 'positive',
+          message: '⚔️ Вы выковали 5 мечей! -5 еды, +5 мечей',
+          effects: { food: [-5, -5], sword: [5, 5] },
+          requirement: { food: 5 }
+        }
+      ],
+      leave: [
+        { weight: 1, type: 'neutral', message: 'Вы решили не ковать оружие.', effects: {} }
+      ]
+    }
+  },
+  
+  // Событие 6: Разбойник (РЕДКОЕ)
+  {
+    title: '🗡️ Нападение разбойника',
+    text: 'Вас атаковал опасный разбойник! Он требует отдать все ценности. Что вы будете делать?',
+    choices: [
+      { text: 'Отбиться (нужен меч)', action: 'fight' },
+      { text: 'Сдаться', action: 'surrender' }
+    ],
+    outcomes: {
+      fight: [
+        // Поражение без меча (проверяется первым)
+        {
+          weight: 1,
+          type: 'negative',
+          message: '💔 У вас нет меча! Разбойник победил и забрал половину вашей еды и монет...',
+          effects: { food: 'halfLoss', coins: 'halfLoss' },
+          requirement: { sword: 0, exact: true }
+        },
+        // Победа с монетами (33% шанс если есть меч)
+        {
+          weight: 0.33,
+          type: 'positive',
+          message: '⚔️ Вы победили разбойника! -1 меч, но получили +{coins} монет!',
+          effects: { sword: [-1, -1], coins: [1, 5] },
+          requirement: { sword: 1 }
+        },
+        // Победа с едой (33% шанс если есть меч)
+        {
+          weight: 0.33,
+          type: 'positive',
+          message: '⚔️ Вы победили разбойника! -1 меч, но получили +{food} еды!',
+          effects: { sword: [-1, -1], food: [1, 5] },
+          requirement: { sword: 1 }
+        },
+        // Победа с мечами (34% шанс если есть меч)
+        {
+          weight: 0.34,
+          type: 'positive',
+          message: '⚔️ Вы победили разбойника! -1 меч, но получили +{sword} мечей!',
+          effects: { sword: [0, 4] },
+          requirement: { sword: 1 }
+        }
+      ],
+      surrender: [
+        // Всегда теряем половину еды и монет
+        {
+          weight: 1,
+          type: 'negative',
+          message: '💰 Разбойник забрал половину вашей еды и монет...',
+          effects: { food: 'halfLoss', coins: 'halfLoss' }
+        }
+      ]
+    },
+    rare: true // РЕДКОЕ СОБЫТИЕ
+  }
+];
+
+/* ==========
+   Глобальное состояние игры
+   ========== */
+// Начальная таблица лидеров
+function getRandomIcon(){
+  const icons = ['🧙', '🧑‍🚀', '🦸', '🧛', '🤖', '👽'];
+  return icons[Math.floor(Math.random() * icons.length)];
+}
+
+const DEFAULT_LEADERBOARD = [
+  { name: 'Onyxode', score: 468, icon: getRandomIcon() },
+  { name: 'Саня Хохлов', score: 418, icon: getRandomIcon() },
+  { name: 'Мишка', score: 362, icon: getRandomIcon() },
+  { name: 'Alexgor', score: 318, icon: getRandomIcon() },
+  { name: 'JamesonDeagle', score: 264, icon: getRandomIcon() },
+  { name: 'Котэ', score: 236, icon: getRandomIcon() },
+  { name: 'ProGamer', score: 194, icon: getRandomIcon() },
+  { name: 'Noob123', score: 168, icon: getRandomIcon() },
+  { name: 'Странник', score: 142, icon: getRandomIcon() },
+  { name: 'Игрок', score: 112, icon: getRandomIcon() }
+];
+
+/* ==========
+   СИСТЕМА ДОСТИЖЕНИЙ
+   ========== */
+const ACHIEVEMENTS = [
+  {
+    id: 'score100',
+    icon: '🥉',
+    name: 'Новичок',
+    description: 'Сделать рекорд 100 очков',
+    reward: 10,
+    check: () => state.best >= 100
+  },
+  {
+    id: 'monsters15',
+    icon: '⚔️',
+    name: 'Охотник на монстров',
+    description: 'Убить 15 врагов (волков и черепов) на карте за одну игру',
+    reward: 20,
+    check: () => state.monstersKilled >= 15
+  },
+  {
+    id: 'quests20',
+    icon: '📋',
+    name: 'Мастер заданий',
+    description: 'Выполнить 20 заданий за одну игру',
+    reward: 20,
+    check: () => state.questsCompleted >= 20
+  },
+  {
+    id: 'allCharacters',
+    icon: '🎭',
+    name: 'Коллекционер',
+    description: 'Открыть всех персонажей в магазине',
+    reward: 20,
+    check: () => state.ownedIcons.length >= SHOP_ITEMS.length
+  },
+  {
+    id: 'score200',
+    icon: '🥈',
+    name: 'Эксперт',
+    description: 'Сделать рекорд 200 очков',
+    reward: 20,
+    check: () => state.best >= 200
+  },
+  {
+    id: 'score300',
+    icon: '🥇',
+    name: 'Мастер',
+    description: 'Сделать рекорд 300 очков',
+    reward: 20,
+    check: () => state.best >= 300
+  },
+  {
+    id: 'snowDiscovery',
+    icon: '❄️',
+    name: 'Полярник',
+    description: 'Обнаружить снежный биом',
+    reward: 20,
+    check: () => state.snowDiscovered === true
+  },
+  {
+    id: 'desertDiscovery',
+    icon: '🏜️',
+    name: 'Покоритель пустынь',
+    description: 'Обнаружить биом пустыни',
+    reward: 20,
+    check: () => state.desertDiscovered === true
+  },
+  {
+    id: 'dragon',
+    icon: '🐉',
+    name: 'Драконоборец',
+    description: 'Убить дракона',
+    reward: 50,
+    check: () => state.dragonsKilled >= 1
+  }
+];
+
+const state = {
+  size: 28,            // радиус гекса (в пикселях)
+  camera: {x:0,y:0},   // позиция камеры (в пикселях)
+  cameraOffset: {x:0,y:0}, // смещение камеры от игрока
+  tiles: new Map(),    // хранилище тайлов (ключ: "q,r"), ленивая генерация
+  player: {q:2000,r:2000}, // стартуем в центре карты (обновлено для карты 4000x4000)
+  score: 0,
+  best: Number(localStorage.getItem('hex-best')||0),
+  coins: Number(localStorage.getItem('hex-coins')||0), // монеты
+  coinsInGame: 0,      // монеты собранные в текущей игре
+  hp: BASE_HP,
+  food: 10,
+  sword: 2,
+  over: false,
+  monstersKilled: 0,   // убито монстров в текущей игре
+  dragonsKilled: 0,    // убито драконов в текущей игре
+  snowDiscovered: false, // обнаружен ли снежный биом
+  desertDiscovered: false, // обнаружен ли биом пустыни
+  deathReason: '',     // причина смерти (последнее действие)
+  seed: 0,              // seed для генерации карты
+  // Система заданий
+  currentQuest: null,   // текущее задание {type, target, current, reward}
+  questsCompleted: 0,   // выполнено заданий за игру
+  questReward: 5,       // текущая награда за задание
+  homesVisited: 0,      // посещено домов
+  castlesVisited: 0,    // посещено замков
+  forestsVisited: 0,    // посещено лесов
+  mountainsVisited: 0,  // посещено гор
+  hoverTile: null,      // клетка под курсором для hover эффекта
+  isDragging: false,    // перетаскивание камеры правой кнопкой
+  dragStart: {x:0,y:0}, // начальная позиция перетаскивания
+  playerIcon: localStorage.getItem('hex-player-icon')||'🧙', // иконка игрока
+  ownedIcons: JSON.parse(localStorage.getItem('hex-owned-icons')||'["🧙"]'), // купленные иконки
+  currentScreen: 'menu', // текущий экран: 'menu', 'game', 'shop', 'leaderboard', 'achievements'
+  previousScreen: 'menu', // предыдущий экран (для возврата)
+  playerName: localStorage.getItem('hex-player-name')||'', // имя игрока
+  leaderboard: JSON.parse(localStorage.getItem('hex-leaderboard')||JSON.stringify(DEFAULT_LEADERBOARD)), // таблица лидеров
+  useTextures: localStorage.getItem('hex-use-textures') === 'true', // использовать текстуры
+  achievements: JSON.parse(localStorage.getItem('hex-achievements')||'[]'), // разблокированные достижения
+  unlockedSecrets: JSON.parse(localStorage.getItem('hex-unlocked-secrets')||'[]'), // разблокированные секретные персонажи
+  upgrades: JSON.parse(localStorage.getItem('hex-upgrades')||'[]'), // купленные улучшения
+  devMode: false, // режим разработчика
+  // Анимация перемещения игрока
+  playerAnimation: {
+    isAnimating: false,
+    fromQ: 2000,
+    fromR: 2000,
+    toQ: 2000,
+    toR: 2000,
+    progress: 0,
+    duration: 200 // миллисекунды
+  }
+};
+
+/* ==========
+   Утилиты цвета/математики
+   ========== */
+function getCss(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim();}
+function clamp(n,a,b){ return Math.max(a,Math.min(b,n)); }
+
+// Простая хеш-функция для seed-based генерации
+function seededRandom(seed){
+  const x = Math.sin(seed) * 10000;
+  return x - Math.floor(x);
+}
+
+/* ==========
+   Описание тайла
+   ========== */
+function makeTile(){
+  return {
+    base:TILE.GRASS,
+    obj:OBJ.NONE,
+    revealed:false,
+    visited:false,
+    scored:false,
+    oneShotDone:false,
+    monsterDefeated:false,
+    tigerDefeated:false,
+    skullDefeated:false,
+    dragonDefeated:false
+  }
+}
+
+/* ==========
+   Аксиальные координаты и геометрия гексов (flat top - плоская вершина)
+   ========== */
+const SQRT3 = Math.sqrt(3);
+
+function axialToPixel(q,r,size){
+  return {
+    x: size * (SQRT3*q + SQRT3/2*r),
+    y: size * (3/2*r)
+  };
+}
+
+function pixelToAxial(x,y,size){
+  const q = (SQRT3/3*x - 1/3*y) / size;
+  const r = (2/3*y) / size;
+  return cubeRound(q, r, -q-r);
+}
+
+function cubeRound(x,y,z){
+  let rx = Math.round(x), ry = Math.round(y), rz = Math.round(z);
+  const x_diff=Math.abs(rx-x), y_diff=Math.abs(ry-y), z_diff=Math.abs(rz-z);
+  if(x_diff>y_diff && x_diff>z_diff){ rx = -ry-rz; }
+  else if(y_diff>z_diff){ ry = -rx-rz; }
+  else{ rz = -rx-ry; }
+  return {q:rx, r:ry};
+}
+
+const NEI = [
+  {q:+1, r:0}, {q:+1, r:-1}, {q:0, r:-1},
+  {q:-1, r:0}, {q:-1, r:+1}, {q:0, r:+1}
+];
+
+function neighbors(q,r){
+  return NEI.map(d=>({q:q+d.q, r:r+d.r}));
+}
+
+function inBounds(q,r){
+  return q>=0 && q<MAP_SIZE && r>=0 && r<MAP_SIZE;
+}
+
+/* ==========
+   ЛЕНИВАЯ ГЕНЕРАЦИЯ ТАЙЛОВ С КЛАСТЕРАМИ
+   ========== */
+// Генератор шума для кластеров (используется для воды, лесов, гор)
+function clusterNoise(q, r, seed, scale = 10){
+  // Простой perlin-like шум
+  const x = q / scale;
+  const y = r / scale;
+  
+  const n1 = seededRandom(seed + Math.floor(x)*73 + Math.floor(y)*179);
+  const n2 = seededRandom(seed + Math.floor(x+1)*73 + Math.floor(y)*179);
+  const n3 = seededRandom(seed + Math.floor(x)*73 + Math.floor(y+1)*179);
+  const n4 = seededRandom(seed + Math.floor(x+1)*73 + Math.floor(y+1)*179);
+  
+  const fx = x - Math.floor(x);
+  const fy = y - Math.floor(y);
+  
+  const i1 = n1 * (1-fx) + n2 * fx;
+  const i2 = n3 * (1-fx) + n4 * fx;
+  
+  return i1 * (1-fy) + i2 * fy;
+}
+
+function getTile(q,r){
+  // Проверка границ
+  if(!inBounds(q,r)) return null;
+  
+  const key = `${q},${r}`;
+  
+  // Если тайл уже создан, возвращаем его
+  if(state.tiles.has(key)){
+    return state.tiles.get(key);
+  }
+  
+  // Создаём новый тайл с генерацией
+  const tile = makeTile();
+  
+  // Вычисляем расстояние от спавна (2000, 2000) - центр карты 4000x4000
+  const distanceFromSpawn = Math.sqrt(Math.pow(q - 2000, 2) + Math.pow(r - 2000, 2));
+  
+  // Снег появляется далеко от спавна (>100 блоков)
+  if(distanceFromSpawn > 100){
+    const snowNoise = clusterNoise(q, r, state.seed + 3000, 20);
+    if(snowNoise > 0.65){
+      tile.base = TILE.SNOW;
+      state.tiles.set(key, tile);
+      return tile;
+    }
+  }
+  
+  // Пустыня появляется на средних расстояниях (50-150 блоков от спавна)
+  if(distanceFromSpawn > 50 && distanceFromSpawn < 150){
+    const desertNoise = clusterNoise(q, r, state.seed + 4000, 18);
+    if(desertNoise > 0.6){
+      tile.base = TILE.DESERT;
+      state.tiles.set(key, tile);
+      return tile;
+    }
+  }
+  
+  // Используем noise для кластеров воды
+  const waterNoise = clusterNoise(q, r, state.seed, 15);
+  
+  if(waterNoise < 0.25){
+    tile.base = TILE.WATER;
+  }else{
+    tile.base = TILE.GRASS;
+  }
+  
+  state.tiles.set(key, tile);
+  return tile;
+}
+
+/* ==========
+   ГЕНЕРАЦИЯ НАЧАЛЬНОЙ ОБЛАСТИ
+   ========== */
+function generateMapFeatures(){
+  // Генерируем только начальную область вокруг игрока
+  const startQ = state.player.q;
+  const startR = state.player.r;
+  const radius = 100; // начальная область 100 тайлов вокруг игрока (увеличено для карты 2000x2000)
+  
+  // Генерируем всю начальную область включая объекты
+  for(let dq = -radius; dq <= radius; dq++){
+    for(let dr = -radius; dr <= radius; dr++){
+      const q = startQ + dq;
+      const r = startR + dr;
+      if(inBounds(q,r)){
+        ensureAreaGenerated(q,r);
+      }
+    }
+  }
+}
+
+// Генерация объектов для новых областей (по требованию)
+function ensureAreaGenerated(q,r){
+  const tile = getTile(q,r);
+  if(!tile) return;
+  
+  // Проверяем песок вокруг воды СНАЧАЛА
+  if(tile.base === TILE.GRASS){
+    const nearWater = neighbors(q,r).some(n=>{
+      if(!inBounds(n.q,n.r)) return false;
+      const nt = getTile(n.q,n.r);
+      return nt && nt.base === TILE.WATER;
+    });
+    
+    const seed2 = state.seed + q*199 + r*431;
+    if(nearWater && seededRandom(seed2) < 0.75){
+      tile.base = TILE.SAND;
+    }
+  }
+  
+  // Если объект ещё не определён, генерируем его
+  if(tile.obj === OBJ.NONE && tile.base !== TILE.WATER){
+    // Используем кластерный шум для лесов/кактусов и гор - УВЕЛИЧИВАЕМ ПЛОТНОСТЬ
+    const forestNoise = clusterNoise(q, r, state.seed + 1000, 8);
+    const rockNoise = clusterNoise(q, r, state.seed + 2000, 7);
+    
+    // Кактусы только в пустыне (реже чем леса на траве)
+    if(forestNoise > 0.7 && tile.base === TILE.DESERT){
+      tile.obj = OBJ.CACTUS;
+    }
+    // Леса только на траве, не на песке и не в пустыне
+    else if(forestNoise > 0.55 && tile.base === TILE.GRASS){
+      tile.obj = OBJ.FOREST;
+    }
+    // Горы только на траве, НЕ в пустыне
+    else if(rockNoise > 0.6 && tile.base === TILE.GRASS){
+      tile.obj = OBJ.ROCK;
+    }else{
+      // Редкие объекты - УВЕЛИЧИВАЕМ ЧАСТОТУ
+      const objSeed = state.seed + q*1009 + r*1297;
+      const objNoise = seededRandom(objSeed);
+      
+      // Проверяем кластеры домов и замков
+      const homeCluster = neighbors(q,r).filter(n=>{
+        if(!inBounds(n.q,n.r)) return false;
+        const nt = getTile(n.q,n.r);
+        return nt && nt.obj === OBJ.HOME;
+      }).length;
+      
+      const castleCluster = neighbors(q,r).filter(n=>{
+        if(!inBounds(n.q,n.r)) return false;
+        const nt = getTile(n.q,n.r);
+        return nt && nt.obj === OBJ.CASTLE;
+      }).length;
+      
+      // Драконы: ЛЕГЕНДАРНЫЕ редкие БОССЫ
+      const dragonChance = tile.base === TILE.SNOW ? 0.0005 : 0.00005; // 0.05% в снегу, 0.005% вне снега (легендарная редкость!)
+      if(objNoise < dragonChance){
+        const nearDragon = neighbors(q,r).some(n=>{
+          if(!inBounds(n.q,n.r)) return false;
+          const nt = getTile(n.q,n.r);
+          return nt && (nt.obj === OBJ.DRAGON || nt.obj === OBJ.MONSTER || nt.obj === OBJ.SKULL);
+        });
+        if(!nearDragon) tile.obj = OBJ.DRAGON;
+      }else if(objNoise < 0.03){
+        // Волки: только НЕ на снегу и НЕ в пустыне (трава, песок) - 3% шанс
+        if(tile.base !== TILE.SNOW && tile.base !== TILE.DESERT){
+          const nearMonster = neighbors(q,r).some(n=>{
+            if(!inBounds(n.q,n.r)) return false;
+            const nt = getTile(n.q,n.r);
+            return nt && (nt.obj === OBJ.MONSTER || nt.obj === OBJ.DRAGON || nt.obj === OBJ.SKULL || nt.obj === OBJ.TIGER);
+          });
+          if(!nearMonster) tile.obj = OBJ.MONSTER;
+        }
+        // Тигры: только в пустыне (3% шанс)
+        else if(tile.base === TILE.DESERT){
+          const nearTiger = neighbors(q,r).some(n=>{
+            if(!inBounds(n.q,n.r)) return false;
+            const nt = getTile(n.q,n.r);
+            return nt && (nt.obj === OBJ.TIGER || nt.obj === OBJ.DRAGON || nt.obj === OBJ.MONSTER || nt.obj === OBJ.SKULL);
+          });
+          if(!nearTiger) tile.obj = OBJ.TIGER;
+        }
+        // Черепа: часто в снегу (если на снегу и нет волка)
+        else if(tile.base === TILE.SNOW){
+          const nearSkull = neighbors(q,r).some(n=>{
+            if(!inBounds(n.q,n.r)) return false;
+            const nt = getTile(n.q,n.r);
+            return nt && (nt.obj === OBJ.SKULL || nt.obj === OBJ.DRAGON || nt.obj === OBJ.MONSTER || nt.obj === OBJ.TIGER);
+          });
+          if(!nearSkull) tile.obj = OBJ.SKULL;
+        }
+      }else if(objNoise < 0.035){
+        // Черепа: очень редко на траве/песке (0.5% шанс), НЕ в пустыне
+        if(tile.base !== TILE.SNOW && tile.base !== TILE.DESERT){
+          const nearSkull = neighbors(q,r).some(n=>{
+            if(!inBounds(n.q,n.r)) return false;
+            const nt = getTile(n.q,n.r);
+            return nt && (nt.obj === OBJ.SKULL || nt.obj === OBJ.DRAGON || nt.obj === OBJ.MONSTER || nt.obj === OBJ.TIGER);
+          });
+          if(!nearSkull) tile.obj = OBJ.SKULL;
+        }
+      }else if(objNoise < 0.045 || (homeCluster > 0 && homeCluster < 5 && objNoise < 0.2)){
+        // Дома могут кластеризоваться (2-5 в кластере)
+        tile.obj = OBJ.HOME;
+      }else if(objNoise < 0.055 || (castleCluster > 0 && castleCluster < 5 && objNoise < 0.15)){
+        // Замки могут кластеризоваться (2-5 в кластере)
+        tile.obj = OBJ.CASTLE;
+      }else if(objNoise < 0.075){
+        // Сундуки: ТОЛЬКО в пустыне или на снегу (2% шанс)
+        if(tile.base === TILE.DESERT || tile.base === TILE.SNOW){
+          tile.obj = OBJ.CHEST;
+        }
+      }else if(objNoise < 0.11){
+        // Монеты спавнятся реже (уменьшено с 0.13 до 0.11)
+        tile.obj = OBJ.COIN;
+      }else if(objNoise < 0.12){
+        // События спавнятся редко
+        tile.obj = OBJ.EVENT;
+      }else if(objNoise < 0.125){
+        // Маяки спавнятся чуть реже
+        tile.obj = OBJ.BEACON;
+      }else if(objNoise < 0.1255){
+        // Порталы - КРАЙНЕ РЕДКИЕ (0.05% шанс) из-за риска телепортации в опасные биомы
+        tile.obj = OBJ.PORTAL;
+      }
+    }
+  }
+}
+
+/* ==========
+   РЕНДЕРИНГ (canvas)
+   ========== */
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d',{alpha:false});
+
+function resize(){
+  const dpr = Math.max(1, Math.min(2, window.devicePixelRatio||1));
+  canvas.width  = Math.floor(canvas.clientWidth  * dpr);
+  canvas.height = Math.floor(canvas.clientHeight * dpr);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+
+  state.size = 28;
+  draw();
+}
+
+function drawHex(x,y,size,fill,stroke,w=2){
+  ctx.beginPath();
+  for(let i=0;i<6;i++){
+    const ang = Math.PI/180*(60*i - 30); // pointy top (острая вершина вверх)
+    const px = x + size*Math.cos(ang);
+    const py = y + size*Math.sin(ang);
+    if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+  }
+  ctx.closePath();
+  if(fill){ ctx.fillStyle = fill; ctx.fill(); }
+  if(stroke){ ctx.lineWidth=w; ctx.strokeStyle = stroke; ctx.stroke(); }
+}
+
+function draw(){
+  ctx.fillStyle = getCss('--bg');
+  ctx.fillRect(0,0,canvas.clientWidth,canvas.clientHeight);
+
+  // Камера центрирована на игроке с учетом смещения
+  const playerPix = axialToPixel(state.player.q, state.player.r, state.size);
+  state.camera.x = canvas.clientWidth/2 - playerPix.x + state.cameraOffset.x;
+  state.camera.y = canvas.clientHeight/2 - playerPix.y + state.cameraOffset.y;
+  
+  // Определяем видимую область (только то, что на экране)
+  const visibleRadius = Math.ceil(Math.max(canvas.clientWidth, canvas.clientHeight) / (state.size * 2)) + 2;
+  
+  // Рисуем только видимые тайлы вокруг игрока
+  for(let dq = -visibleRadius; dq <= visibleRadius; dq++){
+    for(let dr = -visibleRadius; dr <= visibleRadius; dr++){
+      const q = state.player.q + dq;
+      const r = state.player.r + dr;
+      
+      if(!inBounds(q,r)) continue;
+      
+      // Генерируем тайл если нужно
+      ensureAreaGenerated(q,r);
+      const tile = getTile(q,r);
+      if(!tile) continue;
+      
+    const p = axialToPixel(q,r,state.size);
+      const x = p.x + state.camera.x;
+      const y = p.y + state.camera.y;
+      
+      // Пропускаем если за границами экрана
+      if(x < -state.size*2 || x > canvas.clientWidth + state.size*2 ||
+         y < -state.size*2 || y > canvas.clientHeight + state.size*2) continue;
+      
+    const fill = tile.revealed ? (tile.base===TILE.GRASS?COLORS.grass:
+                                  tile.base===TILE.SAND?COLORS.sand:
+                                  tile.base===TILE.WATER?COLORS.water:
+                                  tile.base===TILE.SNOW?COLORS.snow:
+                                  tile.base===TILE.DESERT?COLORS.desert:COLORS.fog)
+                               : COLORS.fog;
+      
+      // Определяем имя текстуры
+      let textureName = null;
+      if(tile.revealed){
+        if(tile.base === TILE.GRASS) textureName = 'tile_grass';
+        else if(tile.base === TILE.SAND) textureName = 'tile_sand';
+        else if(tile.base === TILE.WATER) textureName = 'tile_water';
+      }
+      
+      // Пробуем нарисовать текстуру (только если включен режим текстур)
+      let textureDrawn = false;
+      if(state.useTextures && textureName){
+        // Если клетка открыта, но не посещена - рисуем с затемнением
+        if(tile.revealed && !tile.visited){
+          ctx.save();
+          ctx.globalAlpha = 0.6;
+          textureDrawn = drawHexTexture(x, y, state.size+1, textureName);
+          ctx.restore();
+        } else {
+          textureDrawn = drawHexTexture(x, y, state.size+1, textureName);
+        }
+      }
+      
+      // Если текстуры нет, рисуем обычный гексагон
+      if(!textureDrawn){
+        // Если клетка открыта, но не посещена - делаем бледнее
+        if(tile.revealed && !tile.visited){
+          ctx.save();
+          ctx.globalAlpha = 0.6;
+          drawHex(x,y,state.size+1, fill, null, 0);
+          drawHex(x,y,state.size+1, null, 'rgba(0,0,0,0.3)', 1);
+          ctx.restore();
+        }else{
+          drawHex(x,y,state.size+1, fill, null, 0);
+          // Добавляем тонкую темную обводку
+          drawHex(x,y,state.size+1, null, 'rgba(0,0,0,0.3)', 1);
+        }
+      } else {
+        // Добавляем обводку поверх текстуры
+        drawHex(x,y,state.size+1, null, 'rgba(0,0,0,0.3)', 1);
+        
+        // Если клетка не посещена, добавляем полупрозрачное затемнение поверх
+        if(tile.revealed && !tile.visited){
+          drawHex(x,y,state.size+1, 'rgba(58,58,58,0.5)', null, 0);
+        }
+      }
+      
+      // Hover эффект
+      if(state.hoverTile && state.hoverTile.q === q && state.hoverTile.r === r){
+        drawHex(x,y,state.size+1, 'rgba(255,255,255,0.15)', 'rgba(255,255,255,0.5)', 3);
+      }
+      
+      // объект (если открыт)
+      if(tile.revealed){
+        ctx.font = Math.floor(state.size*0.85)+"px system-ui";
+        ctx.textAlign='center'; ctx.textBaseline='middle';
+        
+        // Если объект уже посещен (или монстр побежден, или one-shot использован), делаем бледнее
+        const isUsed = tile.oneShotDone || tile.monsterDefeated || tile.tigerDefeated || tile.skullDefeated || tile.dragonDefeated || (tile.scored && (tile.obj === OBJ.FOREST || tile.obj === OBJ.CACTUS || tile.obj === OBJ.ROCK));
+        
+        if(isUsed){
+          ctx.save();
+          ctx.globalAlpha = 0.4;
+        }
+        
+        // Рисуем объекты (размер зависит от режима текстур)
+        const objSize = state.useTextures ? state.size * 2 : state.size * 0.85;
+        switch(tile.obj){
+          case OBJ.FOREST: drawIcon('forest', x, y, objSize); break;
+          case OBJ.CACTUS: drawIcon('cactus', x, y, objSize); break;
+          case OBJ.ROCK:   drawIcon('rock', x, y, objSize); break;
+          case OBJ.HOME:   drawIcon('home', x, y, objSize); break;
+          case OBJ.CASTLE: drawIcon('castle', x, y, objSize); break;
+          case OBJ.MONSTER: drawIcon('monster', x, y, objSize); break;
+          case OBJ.TIGER: drawIcon('tiger', x, y, objSize); break;
+          case OBJ.SKULL: drawIcon('skull', x, y, objSize); break;
+          case OBJ.DRAGON: drawIcon('dragon', x, y, objSize); break;
+          case OBJ.COIN: drawIcon('coin', x, y, objSize); break;
+          case OBJ.CHEST: drawIcon('chest', x, y, objSize); break;
+          case OBJ.EVENT: drawIcon('event', x, y, objSize); break;
+          case OBJ.BEACON: drawIcon('beacon', x, y, objSize); break;
+          case OBJ.PORTAL: drawIcon('portal', x, y, objSize); break;
+        }
+        
+        if(isUsed){
+          ctx.restore();
+        }
+      } else if(getCharacterAbility() === 'seer' && (tile.obj === OBJ.COIN || tile.obj === OBJ.CHEST)){
+        // Провидец видит монетки и сундуки сквозь туман войны
+        ctx.save();
+        ctx.globalAlpha = 0.5;
+        const objSize = state.useTextures ? state.size * 2 : state.size * 0.85;
+        if(tile.obj === OBJ.COIN){
+          drawIcon('coin', x, y, objSize);
+        } else if(tile.obj === OBJ.CHEST){
+          drawIcon('chest', x, y, objSize);
+        }
+        ctx.restore();
+      }
+    }
+  }
+  
+  // подсветка возможных ходов - соседи всех посещенных клеток
+  const validMoves = new Set();
+  
+  // Проходим по всем посещенным клеткам и собираем их соседей
+  for(let dq = -visibleRadius; dq <= visibleRadius; dq++){
+    for(let dr = -visibleRadius; dr <= visibleRadius; dr++){
+      const q = state.player.q + dq;
+      const r = state.player.r + dr;
+      
+      if(!inBounds(q,r)) continue;
+      const tile = getTile(q,r);
+      if(!tile || !tile.visited) continue;
+      
+      // Для каждой посещенной клетки добавляем её соседей
+      neighbors(q,r).forEach(n=>{
+    if(!inBounds(n.q,n.r)) return;
+        const nt = getTile(n.q,n.r);
+        if(!nt) return;
+        
+        // Добавляем в валидные ходы если это не вода (открытая или туман)
+        if(!nt.revealed || nt.base !== TILE.WATER){
+          validMoves.add(`${n.q},${n.r}`);
+        }
+      });
+    }
+  }
+  
+  // Убрали подсветку желтой обводкой - клетки и так выделяются
+
+  // игрок (с учетом анимации перемещения)
+  let playerQ = state.player.q;
+  let playerR = state.player.r;
+  
+  // Если идет анимация, интерполируем позицию
+  if(state.playerAnimation.isAnimating){
+    const t = state.playerAnimation.progress;
+    playerQ = state.playerAnimation.fromQ + (state.playerAnimation.toQ - state.playerAnimation.fromQ) * t;
+    playerR = state.playerAnimation.fromR + (state.playerAnimation.toR - state.playerAnimation.fromR) * t;
+  }
+  
+  const animPlayerPix = axialToPixel(playerQ, playerR, state.size);
+  const px = animPlayerPix.x + state.camera.x;
+  const py = animPlayerPix.y + state.camera.y;
+  
+  ctx.save();
+  // Определяем имя иконки игрока
+  let playerIconName = 'player_mage';
+  if(state.playerIcon === '🧑‍🚀') playerIconName = 'player_astronaut';
+  else if(state.playerIcon === '🦸') playerIconName = 'player_superman';
+  else if(state.playerIcon === '🧛') playerIconName = 'player_vampire';
+  else if(state.playerIcon === '🤖') playerIconName = 'player_robot';
+  else if(state.playerIcon === '👽') playerIconName = 'player_alien';
+  else if(state.playerIcon === '🔮') playerIconName = 'player_seer';
+  else if(state.playerIcon === '⚔️') playerIconName = 'player_warrior';
+  else if(state.playerIcon === '🦅') playerIconName = 'player_ranger';
+  
+  // Рисуем игрока (размер зависит от режима текстур)
+  const playerSize = state.useTextures ? state.size * 2 : state.size * 0.85;
+  drawIcon(playerIconName, px, py, playerSize);
+  ctx.restore();
+}
+
+/* ==========
+   АНИМАЦИЯ ПЕРЕМЕЩЕНИЯ ИГРОКА
+   ========== */
+let animationFrameId = null;
+
+function startPlayerAnimation(fromQ, fromR, toQ, toR){
+  state.playerAnimation.isAnimating = true;
+  state.playerAnimation.fromQ = fromQ;
+  state.playerAnimation.fromR = fromR;
+  state.playerAnimation.toQ = toQ;
+  state.playerAnimation.toR = toR;
+  state.playerAnimation.progress = 0;
+  state.playerAnimation.startTime = performance.now();
+  
+  if(animationFrameId) cancelAnimationFrame(animationFrameId);
+  animatePlayer();
+}
+
+function animatePlayer(){
+  const now = performance.now();
+  const elapsed = now - state.playerAnimation.startTime;
+  state.playerAnimation.progress = Math.min(elapsed / state.playerAnimation.duration, 1);
+  
+  // Easing function (ease-out)
+  const t = state.playerAnimation.progress;
+  state.playerAnimation.progress = 1 - Math.pow(1 - t, 3);
+  
+  draw();
+  
+  if(state.playerAnimation.progress < 1){
+    animationFrameId = requestAnimationFrame(animatePlayer);
+  } else {
+    state.playerAnimation.isAnimating = false;
+    state.playerAnimation.progress = 1;
+    draw();
+  }
+}
+
+function drawEmoji(txt, x, y){ 
+  ctx.fillStyle='#fff'; 
+  ctx.fillText(txt,x,y); 
+}
+
+// Новая функция для отрисовки иконок (изображения или emoji)
+function drawIcon(iconName, x, y, size){
+  // Проверяем флаг использования текстур
+  if(state.useTextures && iconImages[iconName]){
+    // Рисуем загруженное изображение размером с гексагон
+    const img = iconImages[iconName];
+    const imgSize = size || state.size * 2; // Размер гексагона
+    ctx.drawImage(img, x - imgSize/2, y - imgSize/2, imgSize, imgSize);
+  } else {
+    // Рисуем emoji по умолчанию
+    const emoji = iconEmojis[iconName];
+    if(emoji){
+      ctx.font = Math.floor(state.size * 0.85)+"px system-ui";
+      ctx.textAlign='center'; 
+      ctx.textBaseline='middle';
+      ctx.fillStyle='#fff'; 
+      ctx.fillText(emoji, x, y);
+    }
+  }
+}
+
+// Функция для отрисовки текстуры на гексагоне
+function drawHexTexture(x, y, size, textureName){
+  if(iconImages[textureName]){
+    ctx.save();
+    
+    // Создаем путь гексагона для клипа
+    ctx.beginPath();
+    for(let i=0;i<6;i++){
+      const ang = Math.PI/180*(60*i - 30);
+      const px = x + size*Math.cos(ang);
+      const py = y + size*Math.sin(ang);
+      if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+    }
+    ctx.closePath();
+    ctx.clip();
+    
+    // Рисуем текстуру
+    const img = iconImages[textureName];
+    const imgSize = size * 2;
+    ctx.drawImage(img, x - imgSize/2, y - imgSize/2, imgSize, imgSize);
+    
+    ctx.restore();
+    return true;
+  }
+  return false;
+}
+
+function drawPawn(x,y,sz){
+  ctx.beginPath();
+  ctx.arc(x,y-sz*0.25, sz*0.22, 0, Math.PI*2);
+  ctx.fill();
+  ctx.fillRect(x-sz*0.18, y-sz*0.12, sz*0.36, sz*0.58);
+  ctx.fillRect(x-sz*0.28, y+sz*0.36, sz*0.56, sz*0.13);
+}
+
+/* ==========
+   ПЕРСОНАЖИ И ИХ СПОСОБНОСТИ
+   ========== */
+function getCharacterAbility(){
+  const icon = state.playerIcon;
+  if(icon === '🧙') return 'none'; // Маг
+  if(icon === '🧑‍🚀') return 'astronaut'; // Космонавт - леса и горы за 1 еду
+  if(icon === '🦸') return 'superman'; // Супермен - 30% шанс не потерять еду
+  if(icon === '🧛') return 'vampire'; // Вампир - +2 еды за убийство монстра
+  if(icon === '🤖') return 'robot'; // Робот - оружие считается за еду
+  if(icon === '👽') return 'alien'; // Пришелец - видит дальше
+  // Секретные персонажи
+  if(icon === '🔮') return 'seer'; // Провидец - видит монетки и сундуки сквозь туман
+  if(icon === '⚔️') return 'warrior'; // Воин - x2 мечей от всех источников
+  if(icon === '🦅') return 'ranger'; // Следопыт - нет штрафов от леса/гор, видит на 3 клетки дальше, перемещается на 3 клетки
+  return 'none';
+}
+
+/* ==========
+   УВЕДОМЛЕНИЯ - НОВАЯ СИСТЕМА
+   ========== */
+let notificationQueue = [];
+let isShowingNotification = false;
+
+function clearNotifications(){
+  const container = document.getElementById('notifications');
+  container.innerHTML = '';
+}
+
+function showNotification(text, isPositive){
+  const container = document.getElementById('notifications');
+  
+  const notifDiv = document.createElement('div');
+  notifDiv.className = 'notification ' + (isPositive === true ? 'positive' : isPositive === false ? 'negative' : 'neutral');
+  notifDiv.textContent = text;
+  
+  container.appendChild(notifDiv);
+  
+  // Автоматически удаляем старые уведомления (оставляем только последние 4)
+  const notifications = container.querySelectorAll('.notification');
+  if(notifications.length > 4){
+    notifications[0].remove();
+  }
+}
+
+/* ==========
+   ДРАКОН - СПЕЦИАЛЬНОЕ ОКНО СМЕРТИ
+   ========== */
+function showDragonDeathDialog(){
+  document.getElementById('dragonDeathDialog').style.display = 'grid';
+}
+
+function closeDragonDeathDialog(){
+  document.getElementById('dragonDeathDialog').style.display = 'none';
+  gameOver();
+}
+
+// Привязываем кнопку
+document.getElementById('dragonDeathBtn').onclick = closeDragonDeathDialog;
+
+/* ==========
+   СУНДУК С СОКРОВИЩАМИ - СПЕЦИАЛЬНОЕ ОКНО
+   ========== */
+function showTreasureDialog(coins){
+  // Воспроизводим звук достижения
+  playSound('achievement');
+  
+  document.getElementById('treasureAmount').textContent = `+${coins} 🪙`;
+  document.getElementById('treasureDialog').style.display = 'grid';
+}
+
+function closeTreasureDialog(){
+  document.getElementById('treasureDialog').style.display = 'none';
+}
+
+// Привязываем кнопку
+document.getElementById('treasureBtn').onclick = closeTreasureDialog;
+
+/* ==========
+   СЕКРЕТНЫЕ ПЕРСОНАЖИ - РАЗБЛОКИРОВКА
+   ========== */
+// Очередь уведомлений о разблокировках
+let unlockQueue = [];
+
+function checkSecretUnlocks(){
+  SHOP_ITEMS.forEach(item => {
+    if(!item.secret) return;
+    if(state.unlockedSecrets.includes(item.unlockCondition)) return;
+    
+    let shouldUnlock = false;
+    let unlockReason = '';
+    
+    // Проверяем условия разблокировки
+    if(item.unlockCondition === 'coins150' && state.coinsInGame >= 150){
+      shouldUnlock = true;
+      unlockReason = `Собрано ${state.coinsInGame} монет за игру!`;
+    } else if(item.unlockCondition === 'monsters35' && state.monstersKilled >= 35){
+      shouldUnlock = true;
+      unlockReason = `Убито ${state.monstersKilled} врагов за игру!`;
+    } else if(item.unlockCondition === 'score400' && state.score >= 400){
+      shouldUnlock = true;
+      unlockReason = `Достигнуто ${state.score} очков!`;
+    }
+    
+    if(shouldUnlock){
+      state.unlockedSecrets.push(item.unlockCondition);
+      localStorage.setItem('hex-unlocked-secrets', JSON.stringify(state.unlockedSecrets));
+      
+      // Автоматически добавляем в купленные иконки
+      if(!state.ownedIcons.includes(item.icon)){
+        state.ownedIcons.push(item.icon);
+        localStorage.setItem('hex-owned-icons', JSON.stringify(state.ownedIcons));
+      }
+      
+      // Добавляем в очередь
+      unlockQueue.push({ type: 'secret', data: item, reason: unlockReason });
+    }
+  });
+  
+  // Показываем первое уведомление из очереди
+  if(unlockQueue.length > 0){
+    showNextUnlock();
+  }
+}
+
+function showNextUnlock(){
+  if(unlockQueue.length === 0) return;
+  
+  const unlock = unlockQueue.shift();
+  
+  if(unlock.type === 'secret'){
+    showSecretUnlockNotification(unlock.data, unlock.reason);
+  } else if(unlock.type === 'achievement'){
+    showAchievementNotificationQueued(unlock.data);
+  }
+}
+
+function showSecretUnlockNotification(item, reason){
+  const notif = document.createElement('div');
+  notif.className = 'achievementNotification';
+  notif.style.background = 'linear-gradient(135deg, #a855f7 0%, #ec4899 100%)';
+  notif.innerHTML = `
+    <button style="position:absolute;top:10px;right:10px;background:rgba(255,255,255,0.2);border:none;color:white;font-size:20px;width:30px;height:30px;border-radius:50%;cursor:pointer;font-weight:bold" onclick="this.parentElement.remove();showNextUnlock()">×</button>
+    <div class="title">🔓 СЕКРЕТНЫЙ ПЕРСОНАЖ РАЗБЛОКИРОВАН! 🔓</div>
+    <div class="icon">${item.icon}</div>
+    <div class="name">${item.secretName}</div>
+    <div class="reward" style="color:#fbbf24">${item.secretDescription}</div>
+    <div style="margin-top:12px;font-size:14px;color:#d0d0e0">${reason}</div>
+  `;
+  
+  document.body.appendChild(notif);
+}
+
+/* ==========
+   ДОСТИЖЕНИЯ - ФУНКЦИИ
+   ========== */
+function checkAchievement(achievementId){
+  // Проверяем, не разблокировано ли уже это достижение
+  if(state.achievements.includes(achievementId)) return;
+  
+  // Находим достижение
+  const achievement = ACHIEVEMENTS.find(a => a.id === achievementId);
+  if(!achievement) return;
+  
+  // Проверяем условие разблокировки
+  if(achievement.check()){
+    // Воспроизводим звук достижения
+    playSound('achievement');
+    
+    // Разблокируем достижение
+    state.achievements.push(achievementId);
+    localStorage.setItem('hex-achievements', JSON.stringify(state.achievements));
+    
+    // Награждаем игрока
+    state.coins += achievement.reward;
+    localStorage.setItem('hex-coins', state.coins);
+    
+    // Добавляем в очередь вместо немедленного показа
+    unlockQueue.push({ type: 'achievement', data: achievement });
+    
+    // Если это единственное в очереди, показываем сразу
+    if(unlockQueue.length === 1){
+      showNextUnlock();
+    }
+  }
+}
+
+function showAchievementNotificationQueued(achievement){
+  // Создаем красочное уведомление с кнопкой закрытия
+  const notif = document.createElement('div');
+  notif.className = 'achievementNotification';
+  notif.innerHTML = `
+    <button style="position:absolute;top:10px;right:10px;background:rgba(255,255,255,0.2);border:none;color:white;font-size:20px;width:30px;height:30px;border-radius:50%;cursor:pointer;font-weight:bold" onclick="this.parentElement.remove();showNextUnlock()">×</button>
+    <div class="title">🎉 ДОСТИЖЕНИЕ РАЗБЛОКИРОВАНО! 🎉</div>
+    <div class="icon">${achievement.icon}</div>
+    <div class="name">${achievement.name}</div>
+    <div class="reward">+${achievement.reward} 🪙</div>
+  `;
+  
+  document.body.appendChild(notif);
+}
+
+function renderAchievements(){
+  const container = document.getElementById('achievementsList');
+  container.innerHTML = '';
+  
+  ACHIEVEMENTS.forEach(achievement => {
+    const div = document.createElement('div');
+    const isUnlocked = state.achievements.includes(achievement.id);
+    
+    div.className = 'achievement ' + (isUnlocked ? 'unlocked' : 'locked');
+    div.innerHTML = `
+      <div class="icon">${achievement.icon}</div>
+      <div class="info">
+        <div class="name">${achievement.name}</div>
+        <div class="description">${achievement.description}</div>
+        <div class="reward">Награда: ${achievement.reward} 🪙</div>
+        ${isUnlocked ? '<div class="status">✓ Разблокировано</div>' : ''}
+      </div>
+    `;
+    
+    container.appendChild(div);
+  });
+}
+
+/* ==========
+   СЛУЧАЙНЫЕ СОБЫТИЯ
+   ========== */
+let currentEventData = null;
+let currentEvent = null;
+
+function showRandomEvent(eventData){
+  currentEventData = eventData;
+  
+  // Выбираем случайное событие
+  // Сначала фильтруем события: обычные (90% шанс) и редкие (10% шанс)
+  const roll = Math.random();
+  let availableEvents;
+  
+  if(roll < 0.10){
+    // 10% шанс на редкое событие
+    availableEvents = RANDOM_EVENTS.filter(e => e.rare === true);
+    // Если редких событий нет, берем обычные
+    if(availableEvents.length === 0){
+      availableEvents = RANDOM_EVENTS.filter(e => !e.rare);
+    }
+  } else {
+    // 90% шанс на обычное событие
+    availableEvents = RANDOM_EVENTS.filter(e => !e.rare);
+  }
+  
+  const eventIndex = Math.floor(Math.random() * availableEvents.length);
+  currentEvent = availableEvents[eventIndex];
+  
+  // Показываем окно события
+  document.getElementById('eventTitle').textContent = currentEvent.title;
+  
+  // Обновляем ресурсы игрока в окне события
+  document.getElementById('eventHp').textContent = state.hp;
+  document.getElementById('eventFood').textContent = state.food;
+  document.getElementById('eventSword').textContent = state.sword;
+  document.getElementById('eventScore').textContent = state.score;
+  document.getElementById('eventCoins').textContent = state.coinsInGame;
+  
+  document.getElementById('eventText').textContent = currentEvent.text;
+  
+  // Создаем кнопки выбора
+  const choicesContainer = document.getElementById('eventChoices');
+  choicesContainer.innerHTML = '';
+  
+  currentEvent.choices.forEach(choice => {
+    const btn = document.createElement('button');
+    btn.textContent = choice.text;
+    btn.onclick = () => handleEventChoice(choice.action);
+    choicesContainer.appendChild(btn);
+  });
+  
+  // Скрываем результат и кнопку продолжения
+  document.getElementById('eventResult').className = 'eventResult';
+  document.getElementById('eventContinue').className = 'continueBtn';
+  
+  // Показываем диалог
+  document.getElementById('eventDialog').style.display = 'grid';
+}
+
+function handleEventChoice(action){
+  const outcomes = currentEvent.outcomes[action];
+  if(!outcomes || outcomes.length === 0) return;
+  
+  // Проверяем требования
+  let validOutcomes = outcomes.filter(outcome => {
+    if(!outcome.requirement) return true;
+    
+    // Проверяем все требования
+    for(let [resource, amount] of Object.entries(outcome.requirement)){
+      if(resource === 'exact') continue; // Пропускаем служебный флаг
+      
+      // Точное совпадение (для проверки отсутствия ресурса)
+      if(outcome.requirement.exact){
+        if(resource === 'food' && state.food !== amount) return false;
+        if(resource === 'sword' && state.sword !== amount) return false;
+        if(resource === 'hp' && state.hp !== amount) return false;
+      } else {
+        // Обычная проверка (больше или равно)
+        if(resource === 'food' && state.food < amount) return false;
+        if(resource === 'sword' && state.sword < amount) return false;
+        if(resource === 'hp' && state.hp < amount) return false;
+      }
+    }
+    return true;
+  });
+  
+  // Если нет подходящих исходов (не должно случиться с новой системой)
+  if(validOutcomes.length === 0){
+    const resultDiv = document.getElementById('eventResult');
+    resultDiv.className = 'eventResult show negative';
+    resultDiv.textContent = 'Что-то пошло не так...';
+    
+    document.getElementById('eventContinue').className = 'continueBtn show';
+    
+    // Скрываем кнопки выбора
+    document.getElementById('eventChoices').style.display = 'none';
+    return;
+  }
+  
+  // Выбираем исход на основе весов
+  let totalWeight = validOutcomes.reduce((sum, o) => sum + o.weight, 0);
+  let random = Math.random() * totalWeight;
+  let selectedOutcome = null;
+  
+  for(let outcome of validOutcomes){
+    random -= outcome.weight;
+    if(random <= 0){
+      selectedOutcome = outcome;
+      break;
+    }
+  }
+  
+  if(!selectedOutcome) selectedOutcome = validOutcomes[0];
+  
+  // Применяем эффекты
+  const appliedEffects = {};
+  for(let [resource, range] of Object.entries(selectedOutcome.effects)){
+    let value;
+    
+    // Специальные эффекты для торговца
+    if(resource === 'food' && range === 'allSwords'){
+      value = state.sword; // Получаем столько еды, сколько было мечей
+      appliedEffects[resource] = value;
+      state.food += value;
+      continue;
+    }
+    if(resource === 'sword' && range === 'removeAll'){
+      appliedEffects[resource] = -state.sword;
+      state.sword = 0;
+      continue;
+    }
+    
+    // Специальные эффекты для разбойника (потеря половины)
+    if(resource === 'food' && range === 'halfLoss'){
+      value = Math.floor(state.food / 2);
+      appliedEffects[resource] = -value;
+      state.food -= value;
+      continue;
+    }
+    if(resource === 'coins' && range === 'halfLoss'){
+      value = Math.floor(state.coinsInGame / 2);
+      appliedEffects[resource] = -value;
+      state.coinsInGame -= value;
+      continue;
+    }
+    
+    // Обычные эффекты
+    const min = range[0];
+    const max = range[1];
+    value = min + Math.floor(Math.random() * (max - min + 1));
+    
+    // Воин: x2 мечей от всех источников
+    if(resource === 'sword' && value > 0 && getCharacterAbility() === 'warrior'){
+      value *= 2;
+    }
+    
+    appliedEffects[resource] = value;
+    
+    if(resource === 'food') state.food = Math.max(0, state.food + value);
+    if(resource === 'sword') state.sword = Math.max(0, state.sword + value);
+    if(resource === 'hp'){
+      if(value > 0){
+        state.hp = Math.min(getMaxHP(), state.hp + value);
+      } else {
+        state.deathReason = `Событие: ${currentEvent.title} - выбор привел к смерти`;
+        loseHp(-value, `Событие: ${currentEvent.title} - выбор привел к смерти`);
+      }
+    }
+    if(resource === 'coins'){
+      let coinValue = value;
+      // Улучшение: x2 монет (только для положительных значений)
+      if(coinValue > 0 && state.upgrades.includes('doubleCoins')){
+        coinValue *= 2;
+      }
+      state.coinsInGame += coinValue;
+    }
+  }
+  
+  // Формируем сообщение с конкретными значениями
+  let message = selectedOutcome.message;
+  for(let [resource, value] of Object.entries(appliedEffects)){
+    message = message.replace(`{${resource}}`, Math.abs(value));
+  }
+  
+  // Показываем результат
+  const resultDiv = document.getElementById('eventResult');
+  resultDiv.className = 'eventResult show ' + selectedOutcome.type;
+  resultDiv.textContent = message;
+  
+  // Обновляем отображение ресурсов после изменений
+  document.getElementById('eventHp').textContent = state.hp;
+  document.getElementById('eventFood').textContent = state.food;
+  document.getElementById('eventSword').textContent = state.sword;
+  document.getElementById('eventScore').textContent = state.score;
+  document.getElementById('eventCoins').textContent = state.coinsInGame;
+  
+  document.getElementById('eventContinue').className = 'continueBtn show';
+  
+  // Скрываем кнопки выбора
+  document.getElementById('eventChoices').style.display = 'none';
+}
+
+function closeEventDialog(){
+  document.getElementById('eventDialog').style.display = 'none';
+  document.getElementById('eventChoices').style.display = 'flex';
+  
+  // Завершаем ход после события
+  if(currentEventData){
+    const tile = currentEventData.tile;
+    const {q, r} = currentEventData.position;
+    
+    tile.visited = true;
+    tile.revealed = true;
+    
+    // Сохраняем старую позицию для анимации
+    const fromQ = state.player.q;
+    const fromR = state.player.r;
+    state.player = {q, r};
+    
+    // Открываем всех соседей игрока
+    revealNeighbors(q, r);
+
+    updateHud();
+    
+    // Запускаем анимацию ПОСЛЕ обновления всего
+    startPlayerAnimation(fromQ, fromR, q, r);
+  }
+  
+  // Завершаем ход после маяка
+  if(currentBeaconData){
+    closeBeaconDialog();
+    return;
+  }
+  
+  currentEventData = null;
+  currentEvent = null;
+}
+
+// Привязываем кнопку "Продолжить"
+document.getElementById('eventContinue').onclick = closeEventDialog;
+
+/* ==========
+   МАЯК
+   ========== */
+let currentBeaconData = null;
+
+function showBeaconDialog(beaconData){
+  currentBeaconData = beaconData;
+  
+  // Показываем окно маяка
+  document.getElementById('eventTitle').textContent = '🗼 Маяк';
+  
+  // Обновляем ресурсы игрока в окне
+  document.getElementById('eventHp').textContent = state.hp;
+  document.getElementById('eventFood').textContent = state.food;
+  document.getElementById('eventSword').textContent = state.sword;
+  document.getElementById('eventScore').textContent = state.score;
+  document.getElementById('eventCoins').textContent = state.coinsInGame;
+  
+  document.getElementById('eventText').textContent = 'Вы нашли высокий маяк! С его вершины можно осмотреть окрестности.';
+  
+  // Создаем кнопки выбора
+  const choicesContainer = document.getElementById('eventChoices');
+  choicesContainer.innerHTML = '';
+  
+  // Вариант 1: Открыть большую область за 4 еды
+  if(state.food >= 4){
+    const btn1 = document.createElement('button');
+    btn1.textContent = 'Открыть большую область (4 еды)';
+    btn1.onclick = () => handleBeaconChoice('large_food');
+    choicesContainer.appendChild(btn1);
+  }
+  
+  // Вариант 2: Открыть большую область за 3 меча
+  if(state.sword >= 3){
+    const btn2 = document.createElement('button');
+    btn2.textContent = 'Открыть большую область (3 меча)';
+    btn2.onclick = () => handleBeaconChoice('large_sword');
+    choicesContainer.appendChild(btn2);
+  }
+  
+  // Вариант 3: Отказаться и открыть малую область бесплатно
+  const btn3 = document.createElement('button');
+  btn3.textContent = 'Отказаться (малая область бесплатно)';
+  btn3.onclick = () => handleBeaconChoice('small');
+  choicesContainer.appendChild(btn3);
+  
+  // Скрываем результат и кнопку продолжения
+  document.getElementById('eventResult').className = 'eventResult';
+  document.getElementById('eventContinue').className = 'continueBtn';
+  
+  // Показываем диалог
+  document.getElementById('eventDialog').style.display = 'grid';
+}
+
+function handleBeaconChoice(choice){
+  const {q, r} = currentBeaconData.position;
+  let radius = 0;
+  let message = '';
+  
+  if(choice === 'large_food'){
+    state.food -= 4;
+    radius = 9; // Радиус 9 вокруг маяка (увеличено с 6 до 9)
+    message = '🗼 Вы заплатили 4 еды и открыли большую область!';
+  } else if(choice === 'large_sword'){
+    state.sword -= 3;
+    radius = 9; // Радиус 9 вокруг маяка (увеличено с 6 до 9)
+    message = '🗼 Вы заплатили 3 меча и открыли большую область!';
+  } else if(choice === 'small'){
+    radius = 6; // Радиус 6 вокруг маяка (увеличено с 3 до 6)
+    message = '🗼 Вы осмотрели небольшую область вокруг маяка.';
+  }
+  
+  // Открываем область вокруг маяка (шестиугольная форма)
+  for(let dq = -radius; dq <= radius; dq++){
+    for(let dr = -radius; dr <= radius; dr++){
+      const ds = -dq - dr;
+      // Проверяем что клетка находится в пределах шестиугольного радиуса
+      if(Math.abs(dq) <= radius && Math.abs(dr) <= radius && Math.abs(ds) <= radius){
+        const nq = q + dq;
+        const nr = r + dr;
+        if(inBounds(nq, nr)){
+          ensureAreaGenerated(nq, nr);
+          const nt = getTile(nq, nr);
+          if(nt){
+            // Только открываем (revealed), НЕ помечаем как посещенные
+            // Клетки будут бледными, но на них можно будет ходить
+            nt.revealed = true;
+          }
+        }
+      }
+    }
+  }
+  
+  // Показываем результат
+  const resultDiv = document.getElementById('eventResult');
+  resultDiv.className = 'eventResult show positive';
+  resultDiv.textContent = message;
+  
+  // Обновляем отображение ресурсов после изменений
+  document.getElementById('eventHp').textContent = state.hp;
+  document.getElementById('eventFood').textContent = state.food;
+  document.getElementById('eventSword').textContent = state.sword;
+  document.getElementById('eventScore').textContent = state.score;
+  document.getElementById('eventCoins').textContent = state.coinsInGame;
+  
+  document.getElementById('eventContinue').className = 'continueBtn show';
+  
+  // Скрываем кнопки выбора
+  document.getElementById('eventChoices').style.display = 'none';
+}
+
+function closeBeaconDialog(){
+  document.getElementById('eventDialog').style.display = 'none';
+  document.getElementById('eventChoices').style.display = 'flex';
+  
+  // Завершаем ход после маяка
+  if(currentBeaconData){
+    const tile = currentBeaconData.tile;
+    const {q, r} = currentBeaconData.position;
+    
+    tile.visited = true;
+    tile.revealed = true;
+    
+    // Сохраняем старую позицию для анимации
+    const fromQ = state.player.q;
+    const fromR = state.player.r;
+    state.player = {q, r};
+    
+    updateHud();
+    
+    // Запускаем анимацию ПОСЛЕ обновления всего
+    startPlayerAnimation(fromQ, fromR, q, r);
+  }
+  
+  currentBeaconData = null;
+}
+
+/* ==========
+   ИГРОВАЯ ЛОГИКА: клики, ходы, ресурсы и очки
+   ========== */
+canvas.addEventListener('click', onPointer);
+canvas.addEventListener('touchstart', (e)=>{ e.preventDefault(); onPointer(e.touches[0]); }, {passive:false});
+canvas.addEventListener('mousemove', onMouseMove);
+canvas.addEventListener('mousedown', onMouseDown);
+canvas.addEventListener('mouseup', onMouseUp);
+canvas.addEventListener('contextmenu', (e)=>e.preventDefault()); // отключаем контекстное меню
+
+function localToMap(x,y){
+  const playerPix = axialToPixel(state.player.q, state.player.r, state.size);
+  const worldX = x - canvas.clientWidth/2 + playerPix.x - state.cameraOffset.x;
+  const worldY = y - canvas.clientHeight/2 + playerPix.y - state.cameraOffset.y;
+  return pixelToAxial(worldX, worldY, state.size);
+}
+
+// Проверяем, является ли клетка соседом ЛЮБОЙ посещенной клетки ИЛИ открыта маяком
+function isValidMove(q,r){
+  const ability = getCharacterAbility();
+  const isAlien = ability === 'alien';
+  const isRanger = ability === 'ranger';
+  
+  const targetTile = getTile(q, r);
+  if(!targetTile) return false;
+  
+  // Если клетка открыта (revealed) - можно на неё ходить (открыта маяком или обычным способом)
+  if(targetTile.revealed && targetTile.base !== 'water'){
+    return true;
+  }
+  
+  // Стандартная проверка соседства с посещенными клетками
+  for(const [key, tile] of state.tiles){
+    if(!tile.visited) continue;
+    
+    const [tq, tr] = key.split(',').map(Number);
+    
+    // Проверяем, является ли целевая клетка соседом этой посещенной клетки
+    const isNeighbor = neighbors(tq, tr).some(n=>n.q===q && n.r===r);
+    if(isNeighbor) return true;
+    
+    // Пришелец может перемещаться на 2 клетки (соседи соседей)
+    if(isAlien){
+      const isSecondNeighbor = neighbors(tq, tr).some(n=>{
+        return neighbors(n.q, n.r).some(n2=>n2.q===q && n2.r===r);
+      });
+      if(isSecondNeighbor) return true;
+    }
+    
+    // Следопыт может перемещаться на 3 клетки
+    if(isRanger){
+      const isSecondNeighbor = neighbors(tq, tr).some(n=>{
+        return neighbors(n.q, n.r).some(n2=>n2.q===q && n2.r===r);
+      });
+      if(isSecondNeighbor) return true;
+      
+      const isThirdNeighbor = neighbors(tq, tr).some(n=>{
+        return neighbors(n.q, n.r).some(n2=>{
+          return neighbors(n2.q, n2.r).some(n3=>n3.q===q && n3.r===r);
+        });
+      });
+      if(isThirdNeighbor) return true;
+    }
+  }
+  
+  return false;
+}
+
+function onMouseDown(evt){
+  if(state.over) return;
+  if(evt.button === 2){ // правая кнопка мыши
+    state.isDragging = true;
+    const rect = canvas.getBoundingClientRect();
+    state.dragStart = {
+      x: evt.clientX - rect.left,
+      y: evt.clientY - rect.top,
+      offsetX: state.cameraOffset.x,
+      offsetY: state.cameraOffset.y
+    };
+    canvas.style.cursor = 'grabbing';
+  }
+}
+
+function onMouseUp(evt){
+  if(evt.button === 2){ // правая кнопка мыши
+    state.isDragging = false;
+    canvas.style.cursor = 'pointer';
+  }
+}
+
+function onMouseMove(evt){
+  if(state.over) return;
+  const rect = canvas.getBoundingClientRect();
+  const mouseX = evt.clientX - rect.left;
+  const mouseY = evt.clientY - rect.top;
+  
+  // Если перетаскиваем камеру
+  if(state.isDragging){
+    const dx = mouseX - state.dragStart.x;
+    const dy = mouseY - state.dragStart.y;
+    state.cameraOffset.x = state.dragStart.offsetX + dx;
+    state.cameraOffset.y = state.dragStart.offsetY + dy;
+    draw();
+    return;
+  }
+  
+  const {q,r} = localToMap(mouseX, mouseY);
+  
+  if(!inBounds(q,r)){
+    state.hoverTile = null;
+    draw();
+    return;
+  }
+  
+  // Обновляем hover только если клетка изменилась
+  if(!state.hoverTile || state.hoverTile.q !== q || state.hoverTile.r !== r){
+    state.hoverTile = {q,r};
+    draw();
+  }
+}
+
+function onPointer(evt){
+  if(state.over) return;
+  // Игнорируем клик если это была правая кнопка мыши (перетаскивание)
+  if(evt.button === 2) return;
+  // Игнорируем клики во время анимации
+  if(state.playerAnimation.isAnimating) return;
+  
+  const rect = canvas.getBoundingClientRect();
+  const {q,r} = localToMap(evt.clientX-rect.left, evt.clientY-rect.top);
+  
+  if(!inBounds(q,r)) return;
+  
+  // Если игрок кликает на свою текущую позицию - ничего не делаем
+  if(q === state.player.q && r === state.player.r) return;
+  
+  if(!isValidMove(q,r)) return; // Проверяем соседство с любой открытой клеткой
+  
+  ensureAreaGenerated(q,r);
+  const tile = getTile(q,r);
+  if(!tile) return;
+  
+  if(!tile.revealed){
+    tile.revealed = true;
+    if(tile.base===TILE.WATER){ draw(); return; }
+    moveTo(q,r);
+    return;
+  }
+
+  if(tile.base===TILE.WATER) return;
+
+  moveTo(q,r);
+}
+
+function moveTo(q,r){
+  const tile = getTile(q,r);
+  if(!tile) return;
+
+  // Очищаем уведомления перед началом нового хода
+  clearNotifications();
+  
+  // Воспроизводим звук хода
+  playSound('move');
+
+  const ability = getCharacterAbility();
+  
+  // СНАЧАЛА ПОЛУЧАЕМ ВСЕ БОНУСЫ
+  
+  // базовая земля (только если нет объекта на клетке)
+  if(!tile.visited && tile.obj === OBJ.NONE){
+    if(tile.base===TILE.GRASS){
+      addScore(1);
+      showNotification('🎯 +1 очко за шаг по траве', true);
+    } else if(tile.base===TILE.SAND){
+      addScore(1);
+      showNotification('🎯 +1 очко за шаг по песку', true);
+      
+      // Песок: 10% шанс найти сундук с сокровищами (5-20 монет)
+      if(Math.random() < 0.1){
+        let treasureCoins = 5 + Math.floor(Math.random() * 16); // от 5 до 20
+        
+        // Улучшение: x2 монет
+        if(state.upgrades.includes('doubleCoins')){
+          treasureCoins *= 2;
+        }
+        
+        state.coinsInGame += treasureCoins;
+        state.coins += treasureCoins;
+        
+        // Показываем красивое окно сундука
+        showTreasureDialog(treasureCoins);
+      }
+    } else if(tile.base===TILE.DESERT){
+      addScore(2);
+      showNotification('🏜️ +2 очка за шаг по пустыне', true);
+      
+      // Проверяем достижение за обнаружение пустыни (первый раз)
+      if(!state.desertDiscovered){
+        state.desertDiscovered = true;
+        checkAchievement('desertDiscovery');
+      }
+    } else if(tile.base===TILE.SNOW){
+      addScore(3);
+      showNotification('❄️ +3 очка за шаг по снегу', true);
+      
+      // Проверяем достижение за обнаружение снега (первый раз)
+      if(!state.snowDiscovered){
+        state.snowDiscovered = true;
+        checkAchievement('snowDiscovery');
+      }
+    }
+  }
+
+  // объекты
+  switch(tile.obj){
+    case OBJ.FOREST: {
+      if(!tile.scored){ 
+        addScore(2); 
+        tile.scored = true; 
+        showNotification('🌲 +2 очка за исследование леса', true);
+        state.forestsVisited++;
+        updateQuestProgress('forests');
+      }
+      break;
+    }
+    case OBJ.CACTUS: {
+      if(!tile.scored){ 
+        addScore(2); 
+        tile.scored = true; 
+        showNotification('🌵 +2 очка за исследование кактуса', true);
+        state.forestsVisited++; // Считаем как леса для заданий
+        updateQuestProgress('forests');
+      }
+      break;
+    }
+    case OBJ.ROCK: {
+      if(!tile.scored){ 
+        addScore(3); 
+        tile.scored = true; 
+        showNotification('⛰️ +3 очка за покорение горы', true);
+        state.mountainsVisited++;
+        updateQuestProgress('mountains');
+      }
+      break;
+    }
+    case OBJ.HOME: {
+      if(!tile.oneShotDone){ 
+        state.food += 4; 
+        addScore(1); 
+        tile.oneShotDone=true; 
+        showNotification('🏠 +4 еды за посещение дома', true);
+        showNotification('🎯 +1 очко за посещение дома', true);
+        state.homesVisited++;
+        updateQuestProgress('homes');
+      }
+      break;
+    }
+    case OBJ.CASTLE: {
+      if(!tile.oneShotDone){
+        // Воспроизводим звук меча
+        playSound('sword');
+        
+        let swordGain = 1;
+        
+        // Воин: x2 мечей от всех источников
+        if(ability === 'warrior'){
+          swordGain = 2;
+        }
+        
+        state.sword += swordGain; 
+        addScore(1); 
+        tile.oneShotDone=true; 
+        showNotification(`🏰 +${swordGain} меч за посещение замка`, true);
+        if(ability === 'warrior' && swordGain > 1){
+          showNotification('⚔️ Способность Воина: x2 мечей!', true);
+        }
+        showNotification('🎯 +1 очко за посещение замка', true);
+        state.castlesVisited++;
+        updateQuestProgress('castles');
+      }
+      break;
+    }
+    case OBJ.MONSTER: {
+      if(!tile.monsterDefeated){
+        // Воспроизводим звук боя с монстром
+        playSound('monster');
+        
+      if(state.sword>0){
+        state.sword--;
+        let foodGain = 4;
+        
+        // Вампир: +2 еды за убийство монстра
+        if(ability === 'vampire'){
+          foodGain += 2;
+        }
+        
+        state.food += foodGain;
+        addScore(4);
+        state.monstersKilled++;
+          showNotification('⚔️ -1 меч на убийство волка', false);
+          showNotification(`🍗 +${foodGain} еды за убийство волка`, true);
+          if(ability === 'vampire'){
+            showNotification('🧛 Способность вампира: +2 еды!', true);
+          }
+          showNotification('🎯 +4 очка за убийство волка', true);
+          
+          // Проверяем достижение "убить 15 монстров"
+          checkAchievement('monsters15');
+          updateQuestProgress('monsters');
+      }else{
+        state.deathReason = 'Волк убил вас (не было меча для защиты)';
+        loseHp(1, 'Волк убил вас (не было меча для защиты)');
+        showNotification('🐺 -1 здоровье от волка', false);
+      }
+        tile.monsterDefeated = true;
+      tile.scored = true;
+      tile.oneShotDone = true;
+      }
+      break;
+    }
+    case OBJ.SKULL: {
+      if(!tile.skullDefeated){
+        // Воспроизводим звук боя с монстром
+        playSound('monster');
+        
+      if(state.sword >= 2){
+        state.sword -= 2;
+        let foodGain = 6;
+        
+        // Вампир: +2 еды за убийство монстра
+        if(ability === 'vampire'){
+          foodGain += 2;
+        }
+        
+        state.food += foodGain;
+        addScore(10);
+        state.monstersKilled++; // считаем черепа как монстров для достижений
+          showNotification('⚔️ -2 меча на убийство черепа', false);
+          showNotification(`🍗 +${foodGain} еды за убийство черепа`, true);
+          if(ability === 'vampire'){
+            showNotification('🧛 Способность вампира: +2 еды!', true);
+          }
+          showNotification('🎯 +10 очков за убийство черепа', true);
+          
+          // Проверяем достижение "убить 15 монстров"
+          checkAchievement('monsters15');
+          updateQuestProgress('monsters');
+      }else{
+        state.deathReason = 'Череп убил вас (нужно было 2 меча для защиты)';
+        loseHp(1, 'Череп убил вас (нужно было 2 меча для защиты)');
+        showNotification('💀 -1 здоровье от черепа', false);
+      }
+        tile.skullDefeated = true;
+      tile.scored = true;
+      tile.oneShotDone = true;
+      }
+      break;
+    }
+    case OBJ.TIGER: {
+      if(!tile.tigerDefeated){
+        // Воспроизводим звук боя с монстром
+        playSound('monster');
+        
+      if(state.sword >= 2){
+        state.sword -= 2;
+        let foodGain = 5;
+        
+        // Вампир: +2 еды за убийство монстра
+        if(ability === 'vampire'){
+          foodGain += 2;
+        }
+        
+        state.food += foodGain;
+        addScore(7);
+        state.monstersKilled++; // считаем тигров как монстров для достижений
+          showNotification('⚔️ -2 меча на убийство тигра', false);
+          showNotification(`🍗 +${foodGain} еды за убийство тигра`, true);
+          if(ability === 'vampire'){
+            showNotification('🧛 Способность вампира: +2 еды!', true);
+          }
+          showNotification('🎯 +7 очков за убийство тигра', true);
+          
+          // Проверяем достижение "убить 15 монстров"
+          checkAchievement('monsters15');
+          updateQuestProgress('monsters');
+      }else{
+        state.deathReason = 'Тигр убил вас (нужно было 2 меча для защиты)';
+        loseHp(2, 'Тигр убил вас (нужно было 2 меча для защиты)');
+        showNotification('🐅 -2 здоровья от тигра!', false);
+      }
+        tile.tigerDefeated = true;
+      tile.scored = true;
+      tile.oneShotDone = true;
+      }
+      break;
+    }
+    case OBJ.DRAGON: {
+      if(!tile.dragonDefeated){
+        // Воспроизводим звук боя с монстром
+        playSound('monster');
+        
+        if(state.sword >= 15){
+          state.sword -= 15;
+          addScore(35);
+          state.dragonsKilled++;
+          showNotification('🐉 -15 мечей на убийство дракона!', false);
+          showNotification('🎯 +35 очков за убийство дракона!', true);
+          
+          // Проверяем достижение "убить дракона"
+          checkAchievement('dragon');
+        }else{
+          // Дракон убивает игрока мгновенно - показываем специальное окно
+          state.hp = 0;
+          state.deathReason = `Дракон испепелил вас! (нужно было 15 мечей, у вас было ${state.sword})`;
+          showDragonDeathDialog();
+          return;
+        }
+        tile.dragonDefeated = true;
+        tile.scored = true;
+        tile.oneShotDone = true;
+      }
+      break;
+    }
+    case OBJ.COIN: {
+      if(!tile.oneShotDone){
+        // Воспроизводим звук монетки
+        playSound('coin');
+        
+        let coinGain = 1;
+        
+        // Улучшение: x2 монет
+        if(state.upgrades.includes('doubleCoins')){
+          coinGain = 2;
+        }
+        
+        state.coinsInGame += coinGain;
+        addScore(1);
+        tile.oneShotDone = true;
+        showNotification(`🪙 +${coinGain} монета`, true);
+        if(coinGain > 1){
+          showNotification('💰 Улучшение: x2 монет!', true);
+        }
+        showNotification('🎯 +1 очко за монету', true);
+      }
+      break;
+    }
+    case OBJ.CHEST: {
+      if(!tile.oneShotDone){
+        // Воспроизводим звук достижения (сундук - редкая находка!)
+        playSound('achievement');
+        
+        // Случайное количество монет от 5 до 20
+        let chestCoins = 5 + Math.floor(Math.random() * 16);
+        
+        // Улучшение: x2 монет
+        if(state.upgrades.includes('doubleCoins')){
+          chestCoins *= 2;
+        }
+        
+        state.coinsInGame += chestCoins;
+        addScore(3);
+        tile.oneShotDone = true;
+        showNotification(`🎁 Сундук! +${chestCoins} монет!`, true);
+        if(state.upgrades.includes('doubleCoins')){
+          showNotification('💰 Улучшение: x2 монет!', true);
+        }
+        showNotification('🎯 +3 очка за сундук', true);
+      }
+      break;
+    }
+    case OBJ.EVENT: {
+      if(!tile.oneShotDone){
+        // Воспроизводим звук события
+        playSound('event');
+        
+        tile.oneShotDone = true;
+        // Сохраняем позицию и тайл для события
+        const eventData = {
+          tile: tile,
+          position: {q, r}
+        };
+        showRandomEvent(eventData);
+        // Не обновляем HUD и не рисуем, пока событие не завершится
+        return;
+      }
+      break;
+    }
+    case OBJ.BEACON: {
+      if(!tile.oneShotDone){
+        addScore(1);
+        tile.oneShotDone = true;
+        showNotification('🗼 +1 очко за посещение маяка', true);
+        // Сохраняем позицию и тайл для маяка
+        const beaconData = {
+          tile: tile,
+          position: {q, r}
+        };
+        showBeaconDialog(beaconData);
+        // Не обновляем HUD и не рисуем, пока диалог не завершится
+        return;
+      }
+      break;
+    }
+    case OBJ.PORTAL: {
+      if(!tile.oneShotDone){
+        addScore(10);
+        tile.oneShotDone = true;
+        showNotification('🌀 +10 очков за использование портала!', true);
+        
+        // Телепортация на случайное место в радиусе ±500 клеток от текущей позиции
+        // Минимальное расстояние 100 клеток чтобы точно переместиться
+        let targetQ, targetR;
+        let attempts = 0;
+        const maxAttempts = 100;
+        
+        do {
+          // Случайное смещение в диапазоне от -500 до +500 для каждой координаты
+          const offsetQ = Math.floor(Math.random() * 1001) - 500; // от -500 до +500
+          const offsetR = Math.floor(Math.random() * 1001) - 500; // от -500 до +500
+          
+          targetQ = q + offsetQ;
+          targetR = r + offsetR;
+          
+          // Проверяем что расстояние достаточно большое (минимум 100 клеток)
+          const distance = Math.sqrt(offsetQ * offsetQ + offsetR * offsetR);
+          
+          // Если координаты в пределах карты и расстояние достаточное
+          if(inBounds(targetQ, targetR) && distance >= 100){
+            break;
+          }
+          
+          attempts++;
+        } while(attempts < maxAttempts);
+        
+        // Если не нашли после многих попыток, используем последние координаты в пределах карты
+        targetQ = Math.max(100, Math.min(MAP_SIZE - 100, targetQ));
+        targetR = Math.max(100, Math.min(MAP_SIZE - 100, targetR));
+        
+        // СНАЧАЛА генерируем большую область вокруг целевой точки (радиус 50 клеток)
+        for(let dq = -50; dq <= 50; dq++){
+          for(let dr = -50; dr <= 50; dr++){
+            const genQ = targetQ + dq;
+            const genR = targetR + dr;
+            if(inBounds(genQ, genR)){
+              ensureAreaGenerated(genQ, genR);
+            }
+          }
+        }
+        
+        // ТЕПЕРЬ ищем ближайшую не-водную клетку
+        let found = false;
+        for(let searchRadius = 0; searchRadius < 50 && !found; searchRadius++){
+          for(let dq = -searchRadius; dq <= searchRadius && !found; dq++){
+            for(let dr = -searchRadius; dr <= searchRadius && !found; dr++){
+              const testQ = targetQ + dq;
+              const testR = targetR + dr;
+              if(inBounds(testQ, testR)){
+                const testTile = getTile(testQ, testR);
+                if(testTile && testTile.base !== TILE.WATER){
+                  targetQ = testQ;
+                  targetR = testR;
+                  found = true;
+                }
+              }
+            }
+          }
+        }
+        
+        // Если все еще не нашли (очень маловероятно), принудительно создаем травяную клетку
+        if(!found){
+          ensureAreaGenerated(targetQ, targetR);
+          const forceTile = getTile(targetQ, targetR);
+          if(forceTile){
+            forceTile.base = TILE.GRASS;
+          }
+        }
+        
+        // Вычисляем реальное расстояние телепортации
+        const actualDistance = Math.round(Math.sqrt(Math.pow(targetQ - q, 2) + Math.pow(targetR - r, 2)));
+        
+        // Телепортируем игрока
+        const oldQ = state.player.q;
+        const oldR = state.player.r;
+        state.player.q = targetQ;
+        state.player.r = targetR;
+        
+        // Сбрасываем смещение камеры
+        state.cameraOffset = {x: 0, y: 0};
+        
+        // Генерируем дополнительную область вокруг нового места (радиус 30 клеток)
+        for(let dq = -30; dq <= 30; dq++){
+          for(let dr = -30; dr <= 30; dr++){
+            const genQ = targetQ + dq;
+            const genR = targetR + dr;
+            if(inBounds(genQ, genR)){
+              ensureAreaGenerated(genQ, genR);
+            }
+          }
+        }
+        
+        // Открываем новую область вокруг игрока
+        const targetTile = getTile(targetQ, targetR);
+        if(targetTile){
+          targetTile.revealed = true;
+          targetTile.visited = true;
+        }
+        revealNeighbors(targetQ, targetR);
+        
+        showNotification('🌀 Вы телепортировались через портал!', true);
+        showNotification(`📍 Расстояние: ${actualDistance} клеток`, true);
+        
+        // Обновляем HUD и завершаем ход
+        updateHud();
+        
+        // Запускаем анимацию
+        startPlayerAnimation(oldQ, oldR, targetQ, targetR);
+        
+        // Завершаем функцию - портал не требует оплаты хода
+        return;
+      }
+      break;
+    }
+  }
+
+  // ТЕПЕРЬ ПЛАТИМ ЗА ХОД (после получения всех бонусов)
+  
+  // Определяем стоимость хода в зависимости от клетки
+  let foodCost = 1;
+  
+  // Снег всегда стоит 2 еды
+  if(tile.base === TILE.SNOW){
+    foodCost = 2;
+  }
+  
+  // Космонавт: леса, кактусы и горы стоят 1 еду (как обычная клетка)
+  // Следопыт: леса, кактусы и горы стоят 1 еду (как обычная клетка)
+  // Для остальных персонажей леса/кактусы стоят 2 еды, горы - 3 еды
+  if(ability !== 'astronaut' && ability !== 'ranger'){
+    if(tile.obj === OBJ.FOREST) foodCost = 2;
+    if(tile.obj === OBJ.CACTUS) foodCost = 2;
+    if(tile.obj === OBJ.ROCK) foodCost = 3;
+  }
+  
+  // Робот: оружие считается за еду
+  let hasFood = state.food >= foodCost;
+  if(ability === 'robot' && state.food < foodCost){
+    // Проверяем, хватит ли мечей
+    const foodNeeded = foodCost - state.food;
+    if(state.sword >= foodNeeded){
+      hasFood = true;
+    }
+  }
+  
+  if(hasFood){ 
+    // Супермен: 30% шанс не потерять еду
+    if(ability === 'superman' && Math.random() < 0.3){
+      showNotification('🦸 Способность Супермена: еда не потрачена!', true);
+    } else {
+      // Робот тратит мечи если не хватает еды
+      if(ability === 'robot' && state.food < foodCost){
+        const foodNeeded = foodCost - state.food;
+        state.sword -= foodNeeded;
+        state.food = 0;
+        showNotification(`🤖 -${foodNeeded} меч(а) (используется как еда)`, false);
+      } else {
+        state.food -= foodCost; 
+        if(foodCost > 1){
+          showNotification(`🍗 -${foodCost} еды за ход по сложной местности`, false);
+        } else {
+          showNotification('🍗 -1 еда за ход', false);
+        }
+      }
+      
+      // Космонавт и Следопыт: уведомление о способности
+      if(ability === 'astronaut' && (tile.obj === OBJ.FOREST || tile.obj === OBJ.CACTUS || tile.obj === OBJ.ROCK)){
+        showNotification('🧑‍🚀 Способность космонавта: легкий проход!', true);
+      }
+      if(ability === 'ranger' && (tile.obj === OBJ.FOREST || tile.obj === OBJ.CACTUS || tile.obj === OBJ.ROCK)){
+        showNotification('🦅 Способность Следопыта: легкий проход!', true);
+      }
+      
+      // Песок: 10% шанс потерять дополнительную еду
+      if(tile.base === TILE.SAND && Math.random() < 0.1 && state.food > 0){
+        state.food -= 1;
+        const messages = [
+          '🏖️ Песок был очень горячим - вы потеряли больше сил!',
+          '🌵 Следующий шаг был изматывающим - вы потеряли больше еды!',
+          '☀️ Жара в песке истощила вас сильнее обычного!',
+          '🦶 Вы увязли в рыхлом песке - дополнительная трата сил!'
+        ];
+        const message = messages[Math.floor(Math.random() * messages.length)];
+        showNotification(message, false);
+      }
+    }
+  }else{ 
+    state.deathReason = 'Умерли от голода (закончилась еда для хода)';
+    loseHp(1, 'Умерли от голода (закончилась еда для хода)'); 
+    showNotification('❤️ -1 здоровье (нет еды)', false);
+  }
+
+  tile.visited = true;
+  tile.revealed = true;
+  
+  // Сохраняем старую позицию для анимации
+  const fromQ = state.player.q;
+  const fromR = state.player.r;
+  state.player = {q,r};
+  
+  // Сбрасываем смещение камеры, чтобы центрировать на игроке
+  state.cameraOffset = {x: 0, y: 0};
+
+  // Открываем всех соседей игрока
+  revealNeighbors(q, r);
+
+  updateHud();
+  
+  // Запускаем анимацию ПОСЛЕ обновления всего
+  startPlayerAnimation(fromQ, fromR, q, r);
+}
+
+// Функция для автоматического открытия соседей игрока
+function revealNeighbors(q, r){
+  const ability = getCharacterAbility();
+  const hasVisionUpgrade = state.upgrades.includes('visionRange');
+  
+  // Обычное открытие соседей (1 ряд)
+  neighbors(q, r).forEach(n => {
+    if(!inBounds(n.q, n.r)) return;
+    ensureAreaGenerated(n.q, n.r);
+    const nt = getTile(n.q, n.r);
+    if(nt) {
+      nt.revealed = true;
+    }
+  });
+  
+  // Второй ряд открывается для Пришельца или если есть улучшение
+  if(ability === 'alien' || ability === 'ranger' || hasVisionUpgrade){
+    // Открываем соседей соседей (второй ряд)
+    neighbors(q, r).forEach(n => {
+      if(!inBounds(n.q, n.r)) return;
+      neighbors(n.q, n.r).forEach(n2 => {
+        if(!inBounds(n2.q, n2.r)) return;
+        ensureAreaGenerated(n2.q, n2.r);
+        const nt2 = getTile(n2.q, n2.r);
+        if(nt2) {
+          nt2.revealed = true;
+        }
+      });
+    });
+  }
+  
+  // Третий ряд открывается только для Следопыта или для Пришельца с улучшением
+  if(ability === 'ranger' || (ability === 'alien' && hasVisionUpgrade)){
+    // Открываем соседей соседей соседей (третий ряд)
+    neighbors(q, r).forEach(n => {
+      if(!inBounds(n.q, n.r)) return;
+      neighbors(n.q, n.r).forEach(n2 => {
+        if(!inBounds(n2.q, n2.r)) return;
+        neighbors(n2.q, n2.r).forEach(n3 => {
+          if(!inBounds(n3.q, n3.r)) return;
+          ensureAreaGenerated(n3.q, n3.r);
+          const nt3 = getTile(n3.q, n3.r);
+          if(nt3) {
+            nt3.revealed = true;
+          }
+        });
+      });
+    });
+  }
+  
+  // Четвертый ряд открывается только для Следопыта с улучшением
+  if(ability === 'ranger' && hasVisionUpgrade){
+    // Открываем четвертый ряд
+    neighbors(q, r).forEach(n => {
+      if(!inBounds(n.q, n.r)) return;
+      neighbors(n.q, n.r).forEach(n2 => {
+        if(!inBounds(n2.q, n2.r)) return;
+        neighbors(n2.q, n2.r).forEach(n3 => {
+          if(!inBounds(n3.q, n3.r)) return;
+          neighbors(n3.q, n3.r).forEach(n4 => {
+            if(!inBounds(n4.q, n4.r)) return;
+            ensureAreaGenerated(n4.q, n4.r);
+            const nt4 = getTile(n4.q, n4.r);
+            if(nt4) {
+              nt4.revealed = true;
+            }
+          });
+        });
+      });
+    });
+  }
+}
+
+function addScore(n){
+  state.score += n;
+  if(state.score > state.best){
+    state.best = state.score;
+    localStorage.setItem('hex-best', state.best);
+    
+    // Проверяем достижения за рекорды
+    checkAchievement('score100');
+    checkAchievement('score200');
+    checkAchievement('score300');
+  }
+}
+
+function loseHp(n, reason){
+  state.hp -= n;
+  
+  // Показываем эффект получения урона
+  showDamageEffect();
+  
+  if(state.hp<=0){
+    state.hp=0;
+    // Сохраняем причину смерти
+    if(reason){
+      state.deathReason = reason;
+    }
+    gameOver();
+  }
+}
+
+// Визуальный эффект получения урона
+function showDamageEffect(){
+  const damageEl = document.getElementById('damageEffect');
+  damageEl.classList.remove('show');
+  // Небольшая задержка чтобы анимация перезапустилась
+  setTimeout(() => {
+    damageEl.classList.add('show');
+    setTimeout(() => {
+      damageEl.classList.remove('show');
+    }, 500);
+  }, 10);
+}
+
+/* ==========
+   HUD
+   ========== */
+const elHpIcons = document.getElementById('hpIcons');
+const elFoodIcons = document.getElementById('foodIcons');
+const elSwordIcons = document.getElementById('swordIcons');
+const elScore = document.getElementById('score');
+const elBest = document.getElementById('best');
+
+function updateHud(){
+  // Здоровье (показываем все сердечки с учетом улучшений)
+  const maxHp = getMaxHP();
+  const hpBox = document.getElementById('hpBox');
+  elHpIcons.innerHTML='';
+  hpBox.style.display='flex';
+  
+  for(let i=0;i<maxHp;i++){
+    const span=document.createElement('span');
+    span.className='icon';
+    span.textContent='❤️';
+    // Если здоровья меньше - делаем сердечко прозрачным
+    if(i >= state.hp){
+      span.style.opacity = '0.25';
+    } else {
+      span.style.opacity = '1';
+    }
+    elHpIcons.appendChild(span);
+  }
+  
+  // Еда (показываем числом)
+  const foodBox = document.getElementById('foodBox');
+  elFoodIcons.innerHTML='';
+  if(state.food > 0){
+    foodBox.style.display='flex';
+    const span=document.createElement('span');
+    span.style.fontWeight='600';
+    span.style.fontSize='18px';
+    span.textContent='×'+state.food;
+    elFoodIcons.appendChild(span);
+  }else{
+    foodBox.style.display='none';
+  }
+  
+  // Мечи (показываем числом)
+  const swordBox = document.getElementById('swordBox');
+  elSwordIcons.innerHTML='';
+  if(state.sword > 0){
+    swordBox.style.display='flex';
+    const span=document.createElement('span');
+    span.style.fontWeight='600';
+    span.style.fontSize='18px';
+    span.textContent='×'+state.sword;
+    elSwordIcons.appendChild(span);
+  }else{
+    swordBox.style.display='none';
+  }
+  
+  elScore.textContent = state.score;
+  elBest.textContent = state.best;
+  document.getElementById('coinsDisplay').textContent = state.coinsInGame;
+}
+
+/* ==========
+   СИСТЕМА ЗАДАНИЙ
+   ========== */
+function generateQuest(){
+  const questTypes = [
+    {type: 'homes', icon: '🏠', getText: (n) => `Посетите ${n} ${n===1?'дом':n<5?'дома':'домов'}`, getTarget: () => state.questsCompleted * 1 + 3},
+    {type: 'castles', icon: '🏰', getText: (n) => `Посетите ${n} ${n===1?'замок':n<5?'замка':'замков'}`, getTarget: () => state.questsCompleted * 1 + 3},
+    {type: 'forests', icon: '🌲', getText: (n) => `Исследуйте ${n} ${n===1?'лес':n<5?'леса':'лесов'}`, getTarget: () => state.questsCompleted * 1 + 4},
+    {type: 'mountains', icon: '⛰️', getText: (n) => `Покорите ${n} ${n===1?'гору':n<5?'горы':'гор'}`, getTarget: () => state.questsCompleted * 1 + 4},
+    {type: 'monsters', icon: '⚔️', getText: (n) => `Убейте ${n} ${n===1?'врага':n<5?'врагов':'врагов'}`, getTarget: () => Math.max(2, state.questsCompleted * 1 + 2)}
+  ];
+  
+  const questType = questTypes[Math.floor(Math.random() * questTypes.length)];
+  const target = questType.getTarget();
+  
+  state.currentQuest = {
+    type: questType.type,
+    icon: questType.icon,
+    text: questType.getText(target),
+    target: target,
+    current: 0,
+    reward: state.questReward
+  };
+  
+  updateQuestUI();
+}
+
+function updateQuestProgress(questType){
+  if(!state.currentQuest || state.currentQuest.type !== questType) return;
+  
+  state.currentQuest.current++;
+  
+  if(state.currentQuest.current >= state.currentQuest.target){
+    completeQuest();
+  } else {
+    updateQuestUI();
+  }
+}
+
+function completeQuest(){
+  if(!state.currentQuest) return;
+  
+  let reward = state.currentQuest.reward;
+  
+  // Улучшение: x2 монет
+  if(state.upgrades.includes('doubleCoins')){
+    reward *= 2;
+  }
+  
+  state.coins += reward;
+  state.coinsInGame += reward;
+  state.questsCompleted++;
+  state.questReward++; // Увеличиваем награду для следующего задания
+  
+  showNotification(`✅ Задание выполнено! +${reward}🪙`, true);
+  if(state.upgrades.includes('doubleCoins')){
+    showNotification('💰 Улучшение: x2 монет!', true);
+  }
+  
+  // Проверяем достижение
+  if(state.questsCompleted >= 20){
+    checkAchievement('quests20');
+  }
+  
+  // Небольшая задержка перед новым заданием
+  state.currentQuest = null;
+  document.getElementById('questBox').style.display = 'none';
+  
+  setTimeout(() => {
+    generateQuest();
+  }, 1500);
+}
+
+function updateQuestUI(){
+  if(!state.currentQuest) return;
+  
+  const questBox = document.getElementById('questBox');
+  questBox.style.display = 'block';
+  
+  document.getElementById('questIcon').textContent = state.currentQuest.icon;
+  document.getElementById('questText').textContent = state.currentQuest.text;
+  document.getElementById('questProgressText').textContent = `${state.currentQuest.current} / ${state.currentQuest.target}`;
+  
+  // Показываем награду с учетом улучшения x2 монет
+  let displayReward = state.currentQuest.reward;
+  if(state.upgrades.includes('doubleCoins')){
+    displayReward *= 2;
+  }
+  document.getElementById('questReward').textContent = `+${displayReward}🪙`;
+  
+  const progress = (state.currentQuest.current / state.currentQuest.target) * 100;
+  document.getElementById('questProgressFill').style.width = `${progress}%`;
+}
+
+/* ==========
+   СТАРТ/РЕСТАРТ
+   ========== */
+function newGame(){
+  state.score=0;
+  state.coinsInGame=0;
+  state.monstersKilled=0;
+  state.dragonsKilled=0;
+  state.snowDiscovered=false;
+  state.desertDiscovered=false;
+  // Сброс системы заданий
+  state.questsCompleted=0;
+  state.questReward=5;
+  state.homesVisited=0;
+  state.castlesVisited=0;
+  state.forestsVisited=0;
+  state.mountainsVisited=0;
+  state.currentQuest=null;
+  state.deathReason='';
+  state.hp=getMaxHP();
+  state.food=getStartFood();
+  state.sword=2;
+  state.over=false;
+  state.seed=Date.now();
+  state.tiles.clear();
+  state.hoverTile=null;
+  state.cameraOffset={x:0,y:0};
+  state.isDragging=false;
+  unlockQueue=[]; // Очищаем очередь уведомлений
+  
+  // Ищем безопасный старт (только трава, БЕЗ объектов и НЕ снег) - центр карты 4000x4000
+  let startQ = 2000, startR = 2000;
+  for(let tries=0; tries<200; tries++){
+    const testQ = 1990 + Math.floor(Math.random()*20);
+    const testR = 1990 + Math.floor(Math.random()*20);
+    const testTile = getTile(testQ, testR);
+    
+    // Генерируем объекты для этой клетки
+    ensureAreaGenerated(testQ, testR);
+    
+    // Проверяем: только трава и НЕТ объектов (не снег, не песок)
+    if(testTile && 
+       testTile.base === TILE.GRASS && 
+       testTile.obj === OBJ.NONE){
+      startQ = testQ;
+      startR = testR;
+      break;
+    }
+  }
+  
+  state.player={q:startQ, r:startR};
+  
+  document.getElementById('over').style.display='none';
+  
+  // Генерируем начальную область
+  generateMapFeatures();
+  
+  // Открываем стартовую клетку
+  const startTile = getTile(state.player.q, state.player.r);
+  if(startTile){
+    startTile.revealed=true;
+    startTile.visited=true;
+  }
+  
+  // Открываем всех соседей игрока
+  revealNeighbors(state.player.q, state.player.r);
+  
+  // Генерируем первое задание
+  generateQuest();
+  
+  // Запускаем музыку игры
+  startMusic();
+  
+  updateHud();
+  draw();
+}
+
+function gameOver(){
+  state.over=true;
+  
+  // Воспроизводим звук смерти
+  playSound('death');
+  
+  // Очищаем уведомления при завершении игры
+  clearNotifications();
+  
+  // Проверяем разблокировку секретных персонажей
+  checkSecretUnlocks();
+  
+  // Сохраняем собранные монеты
+  state.coins += state.coinsInGame;
+  localStorage.setItem('hex-coins', state.coins);
+  document.getElementById('finalScore').textContent = state.score;
+  document.getElementById('finalCoins').textContent = state.coinsInGame;
+  
+  // Показываем причину смерти
+  if(state.deathReason){
+    document.getElementById('deathReasonBox').style.display = 'block';
+    document.getElementById('deathReasonText').textContent = state.deathReason;
+  } else {
+    document.getElementById('deathReasonBox').style.display = 'none';
+  }
+  
+  // Проверяем попадание в таблицу лидеров
+  checkAndAddToLeaderboard();
+  
+  // Рендерим таблицу лидеров на экране Game Over
+  renderLeaderboard('gameOverLeaderboard', state.playerName);
+  
+  document.getElementById('over').style.display='grid';
+}
+
+// Управление экранами
+function showScreen(screen){
+  state.previousScreen = state.currentScreen;
+  state.currentScreen = screen;
+  
+  document.getElementById('mainMenu').style.display = screen === 'menu' ? 'grid' : 'none';
+  document.getElementById('shop').style.display = screen === 'shop' ? 'grid' : 'none';
+  document.getElementById('leaderboard').style.display = screen === 'leaderboard' ? 'grid' : 'none';
+  document.getElementById('achievements').style.display = screen === 'achievements' ? 'grid' : 'none';
+  document.getElementById('encyclopedia').style.display = screen === 'encyclopedia' ? 'grid' : 'none';
+  document.getElementById('over').style.display = 'none';
+  
+  // Показываем/скрываем игровой UI
+  document.querySelector('.hud').style.display = screen === 'game' ? '' : 'none';
+  document.getElementById('scoreBox').style.display = screen === 'game' ? '' : 'none';
+  document.getElementById('questBox').style.display = (screen === 'game' && state.currentQuest) ? 'block' : 'none';
+  document.getElementById('buttons').style.display = screen === 'game' ? '' : 'none';
+  document.getElementById('soundButtons').style.display = screen === 'game' ? 'flex' : 'none';
+  document.getElementById('legend').style.display = screen === 'game' ? '' : 'none';
+  document.getElementById('devCheats').style.display = (screen === 'game' && state.devMode) ? 'flex' : 'none';
+  
+  if(screen === 'menu'){
+    updateMenuStats();
+  } else if(screen === 'shop'){
+    updateShop();
+  } else if(screen === 'leaderboard'){
+    renderLeaderboard('leaderboardTable');
+  } else if(screen === 'achievements'){
+    renderAchievements();
+  } else if(screen === 'encyclopedia'){
+    // Энциклопедия статична, не требует обновления
+  } else if(screen === 'game'){
+    draw();
+  }
+}
+
+function updateMenuStats(){
+  document.getElementById('menuBestScore').textContent = state.best;
+  document.getElementById('menuCoins').textContent = state.coins;
+  document.getElementById('playerNameInput').value = state.playerName;
+  document.getElementById('useTexturesCheckbox').checked = state.useTextures;
+}
+
+/* ==========
+   ТАБЛИЦА ЛИДЕРОВ
+   ========== */
+function renderLeaderboard(containerId, highlightPlayer = null){
+  const container = document.getElementById(containerId);
+  container.innerHTML = '';
+  
+  // Добавляем заголовок только для главного экрана таблицы
+  if(containerId === 'leaderboardTable'){
+    const headerRow = document.createElement('div');
+    headerRow.className = 'leaderboardRow header';
+    headerRow.innerHTML = `
+      <div class="rank">#</div>
+      <div class="charIcon">👤</div>
+      <div class="playerName">Игрок</div>
+      <div class="score">Очки</div>
+    `;
+    container.appendChild(headerRow);
+  }
+  
+  // Отображаем топ-10
+  state.leaderboard.slice(0, 10).forEach((entry, index) => {
+    const row = document.createElement('div');
+    row.className = 'leaderboardRow';
+    
+    // Подсвечиваем игрока если это он
+    if(highlightPlayer && entry.name === highlightPlayer && entry.score === state.score){
+      row.classList.add('player');
+    }
+    
+    let rankClass = '';
+    if(index === 0) rankClass = 'gold';
+    else if(index === 1) rankClass = 'silver';
+    else if(index === 2) rankClass = 'bronze';
+    
+    row.innerHTML = `
+      <div class="rank ${rankClass}">${index + 1}</div>
+      <div class="charIcon">${entry.icon || '🧙'}</div>
+      <div class="playerName">${entry.name}</div>
+      <div class="score">${entry.score}</div>
+    `;
+    
+    container.appendChild(row);
+  });
+}
+
+function checkAndAddToLeaderboard(){
+  const playerName = state.playerName.trim();
+  const playerScore = state.score;
+  
+  // Проверяем, попал ли игрок в топ-10
+  const minScore = state.leaderboard.length >= 10 ? state.leaderboard[9].score : 0;
+  
+  if(playerScore > minScore || state.leaderboard.length < 10){
+    if(playerName){
+      // Добавляем игрока в таблицу
+      state.leaderboard.push({
+        name: playerName,
+        score: playerScore,
+        icon: state.playerIcon
+      });
+      
+      // Сортируем по убыванию очков
+      state.leaderboard.sort((a, b) => b.score - a.score);
+      
+      // Оставляем только топ-10
+      state.leaderboard = state.leaderboard.slice(0, 10);
+      
+      // Сохраняем в localStorage
+      localStorage.setItem('hex-leaderboard', JSON.stringify(state.leaderboard));
+      
+      // Показываем сообщение
+      const rank = state.leaderboard.findIndex(e => e.name === playerName && e.score === playerScore) + 1;
+      document.getElementById('leaderboardMessage').textContent = `🎉 Поздравляем! Вы заняли ${rank} место в таблице лидеров!`;
+    } else {
+      // Игрок не ввёл имя
+      document.getElementById('leaderboardMessage').textContent = '⚠️ Вы не ввели имя, поэтому не попали в таблицу лидеров.';
+    }
+  } else {
+    // Не попал в топ-10
+    document.getElementById('leaderboardMessage').textContent = '';
+  }
+}
+
+// Магазин - Персонажи
+const SHOP_ITEMS = [
+  {icon: '🧙', name: 'Маг', price: 0, description: 'Обычный персонаж без особых способностей'},
+  {icon: '🧑‍🚀', name: 'Космонавт', price: 200, description: 'Проходит леса и горы за 1 еду (как обычную траву)'},
+  {icon: '🦸', name: 'Супермен', price: 400, description: '30% шанс не потерять еду при ходе'},
+  {icon: '🧛', name: 'Вампир', price: 600, description: 'Восстанавливает +2 еды за каждого убитого врага (волка или черепа)'},
+  {icon: '🤖', name: 'Робот', price: 800, description: 'Оружие считается за еду'},
+  {icon: '👽', name: 'Пришелец', price: 1000, description: 'Видит дальше на 1 ряд и может перемещаться на 2 клетки за ход'},
+  // СЕКРЕТНЫЕ ПЕРСОНАЖИ
+  {icon: '🔮', name: '???', price: 0, description: 'Этот персонаж секретный и его особенности неизвестны', secretDescription: 'Видит монетки и сундуки сквозь туман войны', secretName: 'Провидец', secret: true, unlockCondition: 'coins150'},
+  {icon: '⚔️', name: '???', price: 0, description: 'Этот персонаж секретный и его особенности неизвестны', secretDescription: 'Получает в 2 раза больше мечей от всех источников', secretName: 'Воин', secret: true, unlockCondition: 'monsters35'},
+  {icon: '🦅', name: '???', price: 0, description: 'Этот персонаж секретный и его особенности неизвестны', secretDescription: 'Не получает штрафы от деревьев и гор, видит на 3 клетки дальше и перемещается на 3 клетки за ход', secretName: 'Следопыт', secret: true, unlockCondition: 'score400'}
+];
+
+// Магазин - Улучшения
+const SHOP_UPGRADES = [
+  {id: 'maxHp', icon: '❤️', name: '+1 Макс здоровье', price: 20, description: 'Увеличивает максимальное здоровье на 1 (7 вместо 6)'},
+  {id: 'startFood', icon: '🍗', name: '+5 Еды в начале', price: 50, description: 'Начинаете игру с 15 едой вместо 10'},
+  {id: 'doubleCoins', icon: '🪙', name: 'x2 Монет', price: 200, description: 'Получаете в 2 раза больше монет от всех источников'},
+  {id: 'visionRange', icon: '👁️', name: '+1 Радиус обзора', price: 300, description: 'Видите на 1 клетку дальше вокруг себя'}
+];
+
+let selectedShopItem = null;
+let currentShopTab = 'characters'; // 'characters' или 'upgrades'
+
+function updateShop(){
+  document.getElementById('shopCoins').textContent = state.coins;
+  
+  const container = document.getElementById('shopItems');
+  container.innerHTML = '';
+  
+  if(currentShopTab === 'characters'){
+    // Показываем персонажей
+    SHOP_ITEMS.forEach((item, index) => {
+      const div = document.createElement('div');
+      div.className = 'item';
+      
+      // Проверяем разблокирован ли секретный персонаж
+      const isSecretUnlocked = item.secret ? state.unlockedSecrets.includes(item.unlockCondition) : true;
+      
+      const isOwned = state.ownedIcons.includes(item.icon);
+      const isSelected = state.playerIcon === item.icon;
+      
+      if(isOwned) div.classList.add('owned');
+      if(isSelected) div.classList.add('selected');
+      
+      // Показываем иконку только если не секретный или разблокирован
+      const displayIcon = (item.secret && !isSecretUnlocked) ? '❓' : item.icon;
+      const displayName = (item.secret && !isSecretUnlocked) ? item.name : (item.secretName || item.name);
+      const displayDescription = (item.secret && !isSecretUnlocked) ? item.description : (item.secretDescription || item.description);
+      
+      div.innerHTML = `
+        <div class="icon">${displayIcon}</div>
+        <div class="itemName">${displayName}</div>
+        <div class="description">${displayDescription}</div>
+        <div class="price">${item.price === 0 ? 'Бесплатно' : item.price + ' 🪙'}</div>
+        ${isOwned ? '<div class="status">✓ Куплено</div>' : ''}
+        ${isSelected ? '<div class="status">Выбрано</div>' : ''}
+      `;
+      
+      div.onclick = () => selectShopItem(item);
+      container.appendChild(div);
+    });
+  } else {
+    // Показываем улучшения
+    SHOP_UPGRADES.forEach((upgrade) => {
+      const div = document.createElement('div');
+      div.className = 'item';
+      
+      const isOwned = state.upgrades.includes(upgrade.id);
+      
+      if(isOwned) div.classList.add('owned');
+      
+      div.innerHTML = `
+        <div class="icon">${upgrade.icon}</div>
+        <div class="itemName">${upgrade.name}</div>
+        <div class="description">${upgrade.description}</div>
+        <div class="price">${upgrade.price + ' 🪙'}</div>
+        ${isOwned ? '<div class="status">✓ Куплено</div>' : ''}
+      `;
+      
+      div.onclick = () => selectShopUpgrade(upgrade);
+      container.appendChild(div);
+    });
+  }
+  
+  updateShopButton();
+}
+
+function selectShopItem(item){
+  playSound('click');
+  selectedShopItem = item;
+  currentShopTab = 'characters';
+  
+  // Если это заблокированный секретный персонаж, сразу показываем условия
+  const isSecretUnlocked = item.secret ? state.unlockedSecrets.includes(item.unlockCondition) : true;
+  if(item.secret && !isSecretUnlocked){
+    showSecretUnlockConditions(item);
+  }
+  
+  updateShop();
+  updateShopButton();
+}
+
+function selectShopUpgrade(upgrade){
+  playSound('click');
+  selectedShopItem = upgrade;
+  currentShopTab = 'upgrades';
+  updateShop();
+  updateShopButton();
+}
+
+function updateShopButton(){
+  const btn = document.getElementById('shopSelect');
+  
+  if(!selectedShopItem){
+    btn.disabled = true;
+    btn.textContent = currentShopTab === 'upgrades' ? 'Выбрать улучшение' : 'Выбрать иконку';
+    return;
+  }
+  
+  // Логика для улучшений
+  if(currentShopTab === 'upgrades'){
+    const isOwned = state.upgrades.includes(selectedShopItem.id);
+    btn.onclick = purchaseUpgrade;
+    
+    if(isOwned){
+      btn.disabled = true;
+      btn.textContent = 'Уже куплено';
+    } else if(state.coins >= selectedShopItem.price){
+      btn.disabled = false;
+      btn.textContent = `Купить за ${selectedShopItem.price} 🪙`;
+    } else {
+      btn.disabled = true;
+      btn.textContent = `Недостаточно монет (${selectedShopItem.price} 🪙)`;
+    }
+    return;
+  }
+  
+  // Логика для персонажей
+  const isOwned = state.ownedIcons.includes(selectedShopItem.icon);
+  const isSelected = state.playerIcon === selectedShopItem.icon;
+  const isSecretUnlocked = selectedShopItem.secret ? state.unlockedSecrets.includes(selectedShopItem.unlockCondition) : true;
+  
+  // Секретный персонаж, не разблокирован
+  if(selectedShopItem.secret && !isSecretUnlocked){
+    btn.disabled = true;
+    btn.textContent = 'Узнать условия разблокировки';
+    btn.onclick = () => showSecretUnlockConditions(selectedShopItem);
+    return;
+  }
+  
+  // Обычная логика для остальных персонажей
+  btn.onclick = purchaseOrSelectItem;
+  
+  if(isSelected){
+    btn.disabled = true;
+    btn.textContent = 'Уже выбрано';
+  } else if(isOwned){
+    btn.disabled = false;
+    btn.textContent = 'Выбрать';
+  } else if(state.coins >= selectedShopItem.price){
+    btn.disabled = false;
+    btn.textContent = `Купить за ${selectedShopItem.price} 🪙`;
+  } else {
+    btn.disabled = true;
+    btn.textContent = `Недостаточно монет (${selectedShopItem.price} 🪙)`;
+  }
+}
+
+function showSecretUnlockConditions(item){
+  let conditionText = '';
+  
+  if(item.unlockCondition === 'coins150'){
+    conditionText = 'Соберите 150 монет за одну игру';
+  } else if(item.unlockCondition === 'monsters35'){
+    conditionText = 'Убейте 35 врагов за одну игру';
+  } else if(item.unlockCondition === 'score400'){
+    conditionText = 'Наберите 400+ очков в одной игре';
+  }
+  
+  alert(`🔓 Условие разблокировки:\n\n${conditionText}\n\nПосле выполнения условия персонаж автоматически разблокируется!`);
+}
+
+function purchaseOrSelectItem(){
+  if(!selectedShopItem) return;
+  
+  const isOwned = state.ownedIcons.includes(selectedShopItem.icon);
+  const isSecretUnlocked = selectedShopItem.secret ? state.unlockedSecrets.includes(selectedShopItem.unlockCondition) : true;
+  
+  // Блокируем покупку секретных персонажей
+  if(selectedShopItem.secret && !isSecretUnlocked){
+    showSecretUnlockConditions(selectedShopItem);
+    return;
+  }
+  
+  if(isOwned){
+    // Просто выбираем
+    state.playerIcon = selectedShopItem.icon;
+    localStorage.setItem('hex-player-icon', state.playerIcon);
+    updateShop();
+  } else {
+    // Покупаем (только обычных персонажей)
+    if(state.coins >= selectedShopItem.price){
+      if(confirm(`Купить ${selectedShopItem.name} за ${selectedShopItem.price} 🪙?`)){
+        state.coins -= selectedShopItem.price;
+        state.ownedIcons.push(selectedShopItem.icon);
+        state.playerIcon = selectedShopItem.icon;
+        
+        localStorage.setItem('hex-coins', state.coins);
+        localStorage.setItem('hex-owned-icons', JSON.stringify(state.ownedIcons));
+        localStorage.setItem('hex-player-icon', state.playerIcon);
+        
+        // Проверяем достижение "все персонажи"
+        checkAchievement('allCharacters');
+        
+        updateShop();
+      }
+    }
+  }
+}
+
+// Кнопки меню
+document.getElementById('startGame').onclick = () => {
+  // Сохраняем имя игрока перед началом игры
+  state.playerName = document.getElementById('playerNameInput').value.trim();
+  localStorage.setItem('hex-player-name', state.playerName);
+  
+  // Проверяем режим разработчика
+  state.devMode = document.getElementById('devModeCheckbox').checked;
+  
+  showScreen('game');
+  newGame();
+};
+
+document.getElementById('openShop').onclick = () => {
+  showScreen('shop');
+};
+
+document.getElementById('openLeaderboard').onclick = () => {
+  showScreen('leaderboard');
+};
+
+document.getElementById('openAchievements').onclick = () => {
+  showScreen('achievements');
+};
+
+document.getElementById('openAchievementsInGame').onclick = () => {
+  showScreen('achievements');
+};
+
+document.getElementById('openEncyclopedia').onclick = () => {
+  showScreen('encyclopedia');
+};
+
+document.getElementById('openEncyclopediaInGame').onclick = () => {
+  showScreen('encyclopedia');
+};
+
+function purchaseUpgrade(){
+  if(!selectedShopItem || currentShopTab !== 'upgrades') return;
+  
+  const isOwned = state.upgrades.includes(selectedShopItem.id);
+  
+  if(!isOwned && state.coins >= selectedShopItem.price){
+    if(confirm(`Купить ${selectedShopItem.name} за ${selectedShopItem.price} 🪙?`)){
+      state.coins -= selectedShopItem.price;
+      state.upgrades.push(selectedShopItem.id);
+      
+      localStorage.setItem('hex-coins', state.coins);
+      localStorage.setItem('hex-upgrades', JSON.stringify(state.upgrades));
+      
+      updateShop();
+    }
+  }
+}
+
+document.getElementById('tabCharacters').onclick = () => {
+  playSound('click');
+  currentShopTab = 'characters';
+  selectedShopItem = null;
+  document.getElementById('tabCharacters').classList.add('active');
+  document.getElementById('tabUpgrades').classList.remove('active');
+  updateShop();
+};
+
+document.getElementById('tabUpgrades').onclick = () => {
+  playSound('click');
+  currentShopTab = 'upgrades';
+  selectedShopItem = null;
+  document.getElementById('tabCharacters').classList.remove('active');
+  document.getElementById('tabUpgrades').classList.add('active');
+  updateShop();
+};
+
+document.getElementById('shopBack').onclick = () => {
+  showScreen('menu');
+  selectedShopItem = null;
+  currentShopTab = 'characters';
+  document.getElementById('tabCharacters').classList.add('active');
+  document.getElementById('tabUpgrades').classList.remove('active');
+};
+
+document.getElementById('leaderboardBack').onclick = () => {
+  showScreen('menu');
+};
+
+document.getElementById('achievementsBack').onclick = () => {
+  // Возвращаемся на предыдущий экран
+  if(state.previousScreen === 'game' && !state.over){
+    showScreen('game');
+  } else {
+    showScreen('menu');
+  }
+};
+
+document.getElementById('encyclopediaBack').onclick = () => {
+  // Возвращаемся на предыдущий экран
+  if(state.previousScreen === 'game' && !state.over){
+    showScreen('game');
+  } else {
+    showScreen('menu');
+  }
+};
+
+document.getElementById('shopSelect').onclick = purchaseOrSelectItem;
+
+// Сохранение имени игрока при вводе
+document.getElementById('playerNameInput').addEventListener('input', (e) => {
+  state.playerName = e.target.value.trim();
+  localStorage.setItem('hex-player-name', state.playerName);
+});
+
+// Переключение режима текстур
+document.getElementById('useTexturesCheckbox').addEventListener('change', (e) => {
+  state.useTextures = e.target.checked;
+  localStorage.setItem('hex-use-textures', state.useTextures);
+});
+
+document.getElementById('backToMenu').onclick = () => {
+  if(confirm('Вернуться в меню? Прогресс текущей игры будет потерян.')){
+    // Сохраняем собранные монеты перед выходом
+    state.coins += state.coinsInGame;
+    localStorage.setItem('hex-coins', state.coins);
+    showScreen('menu');
+  }
+};
+
+document.getElementById('resetProgressBtn').onclick = () => {
+  if(confirm('Вы уверены, что хотите сбросить весь прогресс? (монеты, рекорд, купленные иконки, таблица лидеров, достижения, секретные персонажи, улучшения)')){
+    state.best = 0;
+    state.coins = 0;
+    state.playerIcon = '🧙';
+    state.ownedIcons = ['🧙'];
+    state.playerName = '';
+    state.leaderboard = [...DEFAULT_LEADERBOARD]; // Восстанавливаем начальную таблицу
+    state.achievements = []; // Очищаем достижения
+    state.unlockedSecrets = []; // Очищаем секретные персонажи
+    state.upgrades = []; // Очищаем улучшения
+    
+    localStorage.setItem('hex-best', 0);
+    localStorage.setItem('hex-coins', 0);
+    localStorage.setItem('hex-player-icon', '🧙');
+    localStorage.setItem('hex-owned-icons', JSON.stringify(['🧙']));
+    localStorage.setItem('hex-player-name', '');
+    localStorage.setItem('hex-leaderboard', JSON.stringify(DEFAULT_LEADERBOARD));
+    localStorage.setItem('hex-achievements', JSON.stringify([]));
+    localStorage.setItem('hex-unlocked-secrets', JSON.stringify([]));
+    localStorage.setItem('hex-upgrades', JSON.stringify([]));
+    
+    updateMenuStats();
+    alert('Прогресс сброшен!');
+  }
+};
+
+document.getElementById('new').onclick=newGame;
+document.getElementById('again').onclick=newGame;
+
+document.getElementById('backToMenuFromOver').onclick = () => {
+  showScreen('menu');
+};
+
+// Developer mode cheats
+document.getElementById('cheatHp').onclick = () => {
+  if(state.devMode && !state.over){
+    state.hp = Math.min(getMaxHP(), state.hp + 1);
+    updateHud();
+    showNotification('🔧 DEV: +1 здоровье', null);
+  }
+};
+
+document.getElementById('cheatSword').onclick = () => {
+  if(state.devMode && !state.over){
+    state.sword += 3;
+    updateHud();
+    showNotification('🔧 DEV: +3 меча', null);
+  }
+};
+
+document.getElementById('cheatFood').onclick = () => {
+  if(state.devMode && !state.over){
+    state.food += 10;
+    updateHud();
+    showNotification('🔧 DEV: +10 еды', null);
+  }
+};
+
+document.getElementById('cheatCoins').onclick = () => {
+  if(state.devMode && !state.over){
+    state.coinsInGame += 10;
+    updateHud();
+    showNotification('🔧 DEV: +10 монет', null);
+  }
+};
+
+document.getElementById('cheatScore').onclick = () => {
+  if(state.devMode && !state.over){
+    addScore(20);
+    updateHud();
+    showNotification('🔧 DEV: +20 очков', null);
+  }
+};
+
+/* ==========
+   ИНИЦИАЛИЗАЦИЯ
+   ========== */
+function fitCanvas(){
+  const w = document.getElementById('wrap').clientWidth;
+  const h = document.getElementById('wrap').clientHeight;
+  canvas.style.width = w+'px';
+  canvas.style.height= h+'px';
+}
+
+window.addEventListener('resize', ()=>{ fitCanvas(); resize(); });
+fitCanvas();
+resize();
+
+// Добавляем звук клика на все кнопки
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      playSound('click');
+    });
+  });
+});
+
+// Загружаем иконки и звуки перед показом меню
+Promise.all([preloadIcons(), preloadSounds()]).then(() => {
+  // Показываем главное меню при запуске
+  showScreen('menu');
+  
+  // Обновляем состояние кнопок звука
+  updateSoundButtons();
+  
+  // Запускаем музыку в главном меню
+  startMusic();
+});
+</script>
+</body>
+</html>

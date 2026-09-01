@@ -1,0 +1,930 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<title>Hex Quest</title>
+<style>
+  :root{
+    --bg:#0d0d0d;
+    --ui:#ffffff;
+    --grass:#59c02d;
+    --sand:#f6c52c;
+    --water:#77bfff;
+    --fog:#3a3a3a;
+    --grid:#7a3b16;
+    --hl:#ffd54a;
+    --bad:#ff5a6a;
+  }
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--ui);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;}
+  #wrap{position:relative;height:100%;overflow:hidden;}
+  canvas{position:absolute;inset:0;display:block;touch-action:manipulation;cursor:pointer;}
+  /* HUD */
+  .hud{position:absolute;left:8px;top:8px;display:flex;flex-direction:column;gap:8px;align-items:flex-start;z-index:2}
+  .meter{display:flex;align-items:center;gap:6px;background:rgba(0,0,0,.35);padding:6px 10px;border-radius:10px;backdrop-filter: blur(4px);}
+  .meter b{font-weight:600}
+  .meter .icons{display:flex;gap:4px}
+  .icon{font-size:20px;line-height:1}
+  .counter{min-width:24px;text-align:center;font-variant-numeric:tabular-nums}
+  #scoreBox{position:absolute;right:8px;top:8px;display:flex;flex-direction:column;gap:8px;z-index:2}
+  #scoreBox .card{background:rgba(0,0,0,.35);padding:8px 12px;border-radius:10px;backdrop-filter: blur(4px);}
+  #buttons{position:absolute;right:8px;bottom:8px;display:flex;gap:8px;z-index:2}
+  button{background:#ffffff; border:0; color:#111; padding:10px 14px; border-radius:10px; font-weight:600}
+  button:active{transform:translateY(1px)}
+  /* Game over overlay */
+  #over{position:absolute;inset:0;display:none;place-items:center;background:rgba(0,0,0,.6);backdrop-filter: blur(2px);z-index:3}
+  #over .panel{background:#111; padding:22px; border-radius:14px; text-align:center; width:min(92vw,420px)}
+  #over h2{margin:4px 0 12px}
+  #over .big{font-size:38px;margin:0 0 16px}
+  #legend{position:absolute;left:8px;bottom:8px;background:rgba(0,0,0,.3);padding:8px 10px;border-radius:10px;font-size:12px;line-height:1.35;max-width:min(92vw,520px)}
+  #legend b{font-weight:700}
+  /* Notifications */
+  #notifications{position:absolute;top:80px;left:12px;z-index:4;display:flex;flex-direction:column;gap:8px;align-items:flex-start;pointer-events:none}
+  .notification{background:rgba(0,0,0,.75);padding:12px 18px;border-radius:12px;backdrop-filter:blur(6px);font-size:18px;font-weight:600;animation:notifySlide 2s ease-out forwards;box-shadow:0 4px 12px rgba(0,0,0,.4)}
+  .notification.gain{color:#4ade80;border:2px solid #4ade80}
+  .notification.loss{color:#ff5a6a;border:2px solid #ff5a6a}
+  @keyframes notifySlide{
+    0%{opacity:0;transform:translateY(-20px) scale(0.8)}
+    15%{opacity:1;transform:translateY(0) scale(1)}
+    85%{opacity:1;transform:translateY(0) scale(1)}
+    100%{opacity:0;transform:translateY(-10px) scale(0.9)}
+  }
+  @media (max-width:560px){
+    #legend{display:none}
+  }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="game"></canvas>
+
+  <!-- HUD -->
+  <div class="hud">
+    <div class="meter" id="hpBox" style="display:flex">
+      <div class="icons" id="hpIcons"></div>
+    </div>
+    <div class="meter" id="foodBox" style="display:flex">
+      <span class="icon">🍗</span>
+      <div class="icons" id="foodIcons"></div>
+    </div>
+    <div class="meter" id="swordBox" style="display:flex">
+      <span class="icon">🗡️</span>
+      <div class="icons" id="swordIcons"></div>
+    </div>
+  </div>
+
+  <div id="scoreBox">
+    <div class="card">Очки: <b id="score">0</b></div>
+    <div class="card">Рекорд: <b id="best">0</b></div>
+  </div>
+
+  <div id="buttons">
+    <button id="new">Новая карта</button>
+    <button id="resetBest">Сбросить рекорд</button>
+  </div>
+
+  <div id="over">
+    <div class="panel">
+      <h2>Игра окончена</h2>
+      <p class="big">Ваш счёт: <b id="finalScore">0</b></p>
+      <p>Нажмите «Сыграть ещё», чтобы попробовать набрать больше очков.</p>
+      <div style="margin-top:14px;display:flex;gap:8px;justify-content:center">
+        <button id="again">Сыграть ещё</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notifications container -->
+  <div id="notifications"></div>
+
+  <!-- краткая легенда -->
+  <div id="legend">
+    <b>📜 Правила игры:</b><br>
+    <b>Клетки:</b> Трава/Песок +1 очко • Вода — непроходима<br>
+    <b>Каждый ход:</b> -1 еда (без еды -1 здоровье)<br>
+    <b>Объекты:</b> 🏠 Дом +4 еды +1 очко • 🏰 Замок +1 меч +1 очко<br>
+    🌲 Лес +2 очка • ⛰️ Гора +3 очка<br>
+    💀 Монстр: с мечом -1 меч +2 еды +3 очка, без меча -1 здоровье<br>
+    <b>Цель:</b> Набрать максимум очков на карте 1000×1000!
+  </div>
+</div>
+
+<script>
+/* ==========
+   Простые константы
+   ========== */
+const TILE = { GRASS:'grass', SAND:'sand', WATER:'water', FOG:'fog' };
+const OBJ  = { NONE:'none', FOREST:'forest', ROCK:'rock', HOME:'home', CASTLE:'castle', MONSTER:'monster' };
+
+const COLORS = {
+  grass:getCss('--grass'),
+  sand:getCss('--sand'),
+  water:getCss('--water'),
+  fog:getCss('--fog'),
+  grid:getCss('--grid'),
+  hl:getCss('--hl')
+};
+
+const START_HP = 6;
+const MAP_SIZE = 1000; // Фиксированный размер карты
+
+/* ==========
+   Глобальное состояние игры
+   ========== */
+const state = {
+  size: 28,            // радиус гекса (в пикселях)
+  camera: {x:0,y:0},   // позиция камеры (в пикселях)
+  cameraOffset: {x:0,y:0}, // смещение камеры от игрока
+  tiles: new Map(),    // хранилище тайлов (ключ: "q,r"), ленивая генерация
+  player: {q:500,r:500}, // стартуем в центре карты
+  score: 0,
+  best: Number(localStorage.getItem('hex-best')||0),
+  hp: START_HP,
+  food: 10,
+  sword: 2,
+  over: false,
+  seed: 0,              // seed для генерации карты
+  hoverTile: null,      // клетка под курсором для hover эффекта
+  isDragging: false,    // перетаскивание камеры правой кнопкой
+  dragStart: {x:0,y:0}  // начальная позиция перетаскивания
+};
+
+/* ==========
+   Утилиты цвета/математики
+   ========== */
+function getCss(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim();}
+function clamp(n,a,b){ return Math.max(a,Math.min(b,n)); }
+
+// Простая хеш-функция для seed-based генерации
+function seededRandom(seed){
+  const x = Math.sin(seed) * 10000;
+  return x - Math.floor(x);
+}
+
+/* ==========
+   Описание тайла
+   ========== */
+function makeTile(){
+  return {
+    base:TILE.GRASS,
+    obj:OBJ.NONE,
+    revealed:false,
+    visited:false,
+    scored:false,
+    oneShotDone:false,
+    monsterDefeated:false
+  }
+}
+
+/* ==========
+   Аксиальные координаты и геометрия гексов (flat top - плоская вершина)
+   ========== */
+const SQRT3 = Math.sqrt(3);
+
+function axialToPixel(q,r,size){
+  return {
+    x: size * (SQRT3*q + SQRT3/2*r),
+    y: size * (3/2*r)
+  };
+}
+
+function pixelToAxial(x,y,size){
+  const q = (SQRT3/3*x - 1/3*y) / size;
+  const r = (2/3*y) / size;
+  return cubeRound(q, r, -q-r);
+}
+
+function cubeRound(x,y,z){
+  let rx = Math.round(x), ry = Math.round(y), rz = Math.round(z);
+  const x_diff=Math.abs(rx-x), y_diff=Math.abs(ry-y), z_diff=Math.abs(rz-z);
+  if(x_diff>y_diff && x_diff>z_diff){ rx = -ry-rz; }
+  else if(y_diff>z_diff){ ry = -rx-rz; }
+  else{ rz = -rx-ry; }
+  return {q:rx, r:ry};
+}
+
+const NEI = [
+  {q:+1, r:0}, {q:+1, r:-1}, {q:0, r:-1},
+  {q:-1, r:0}, {q:-1, r:+1}, {q:0, r:+1}
+];
+
+function neighbors(q,r){
+  return NEI.map(d=>({q:q+d.q, r:r+d.r}));
+}
+
+function inBounds(q,r){
+  return q>=0 && q<MAP_SIZE && r>=0 && r<MAP_SIZE;
+}
+
+/* ==========
+   ЛЕНИВАЯ ГЕНЕРАЦИЯ ТАЙЛОВ С КЛАСТЕРАМИ
+   ========== */
+// Генератор шума для кластеров (используется для воды, лесов, гор)
+function clusterNoise(q, r, seed, scale = 10){
+  // Простой perlin-like шум
+  const x = q / scale;
+  const y = r / scale;
+  
+  const n1 = seededRandom(seed + Math.floor(x)*73 + Math.floor(y)*179);
+  const n2 = seededRandom(seed + Math.floor(x+1)*73 + Math.floor(y)*179);
+  const n3 = seededRandom(seed + Math.floor(x)*73 + Math.floor(y+1)*179);
+  const n4 = seededRandom(seed + Math.floor(x+1)*73 + Math.floor(y+1)*179);
+  
+  const fx = x - Math.floor(x);
+  const fy = y - Math.floor(y);
+  
+  const i1 = n1 * (1-fx) + n2 * fx;
+  const i2 = n3 * (1-fx) + n4 * fx;
+  
+  return i1 * (1-fy) + i2 * fy;
+}
+
+function getTile(q,r){
+  // Проверка границ
+  if(!inBounds(q,r)) return null;
+  
+  const key = `${q},${r}`;
+  
+  // Если тайл уже создан, возвращаем его
+  if(state.tiles.has(key)){
+    return state.tiles.get(key);
+  }
+  
+  // Создаём новый тайл с генерацией
+  const tile = makeTile();
+  
+  // Используем noise для кластеров воды
+  const waterNoise = clusterNoise(q, r, state.seed, 15);
+  
+  if(waterNoise < 0.25){
+    tile.base = TILE.WATER;
+  }else{
+    tile.base = TILE.GRASS;
+  }
+  
+  state.tiles.set(key, tile);
+  return tile;
+}
+
+/* ==========
+   ГЕНЕРАЦИЯ НАЧАЛЬНОЙ ОБЛАСТИ
+   ========== */
+function generateMapFeatures(){
+  // Генерируем только начальную область вокруг игрока
+  const startQ = state.player.q;
+  const startR = state.player.r;
+  const radius = 50; // начальная область 50 тайлов вокруг игрока
+  
+  // Генерируем всю начальную область включая объекты
+  for(let dq = -radius; dq <= radius; dq++){
+    for(let dr = -radius; dr <= radius; dr++){
+      const q = startQ + dq;
+      const r = startR + dr;
+      if(inBounds(q,r)){
+        ensureAreaGenerated(q,r);
+      }
+    }
+  }
+}
+
+// Генерация объектов для новых областей (по требованию)
+function ensureAreaGenerated(q,r){
+  const tile = getTile(q,r);
+  if(!tile) return;
+  
+  // Проверяем песок вокруг воды СНАЧАЛА
+  if(tile.base === TILE.GRASS){
+    const nearWater = neighbors(q,r).some(n=>{
+      if(!inBounds(n.q,n.r)) return false;
+      const nt = getTile(n.q,n.r);
+      return nt && nt.base === TILE.WATER;
+    });
+    
+    const seed2 = state.seed + q*199 + r*431;
+    if(nearWater && seededRandom(seed2) < 0.75){
+      tile.base = TILE.SAND;
+    }
+  }
+  
+  // Если объект ещё не определён, генерируем его
+  if(tile.obj === OBJ.NONE && tile.base !== TILE.WATER){
+    // Используем кластерный шум для лесов и гор - УВЕЛИЧИВАЕМ ПЛОТНОСТЬ
+    const forestNoise = clusterNoise(q, r, state.seed + 1000, 8);
+    const rockNoise = clusterNoise(q, r, state.seed + 2000, 7);
+    
+    // Леса и горы только на траве, не на песке! (больше объектов)
+    if(forestNoise > 0.55 && tile.base === TILE.GRASS){
+      tile.obj = OBJ.FOREST;
+    }else if(rockNoise > 0.6 && tile.base === TILE.GRASS){
+      tile.obj = OBJ.ROCK;
+    }else{
+      // Редкие объекты - УВЕЛИЧИВАЕМ ЧАСТОТУ
+      const objSeed = state.seed + q*1009 + r*1297;
+      const objNoise = seededRandom(objSeed);
+      
+      // Проверяем кластеры домов и замков
+      const homeCluster = neighbors(q,r).filter(n=>{
+        if(!inBounds(n.q,n.r)) return false;
+        const nt = getTile(n.q,n.r);
+        return nt && nt.obj === OBJ.HOME;
+      }).length;
+      
+      const castleCluster = neighbors(q,r).filter(n=>{
+        if(!inBounds(n.q,n.r)) return false;
+        const nt = getTile(n.q,n.r);
+        return nt && nt.obj === OBJ.CASTLE;
+      }).length;
+      
+      if(objNoise < 0.03){
+        const nearMonster = neighbors(q,r).some(n=>{
+          if(!inBounds(n.q,n.r)) return false;
+          const nt = getTile(n.q,n.r);
+          return nt && nt.obj === OBJ.MONSTER;
+        });
+        if(!nearMonster) tile.obj = OBJ.MONSTER;
+      }else if(objNoise < 0.04 || (homeCluster > 0 && homeCluster < 5 && objNoise < 0.2)){
+        // Дома могут кластеризоваться (2-5 в кластере)
+        tile.obj = OBJ.HOME;
+      }else if(objNoise < 0.055 || (castleCluster > 0 && castleCluster < 5 && objNoise < 0.15)){
+        // Замки могут кластеризоваться (2-5 в кластере)
+        tile.obj = OBJ.CASTLE;
+      }
+    }
+  }
+}
+
+/* ==========
+   РЕНДЕРИНГ (canvas)
+   ========== */
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d',{alpha:false});
+
+function resize(){
+  const dpr = Math.max(1, Math.min(2, window.devicePixelRatio||1));
+  canvas.width  = Math.floor(canvas.clientWidth  * dpr);
+  canvas.height = Math.floor(canvas.clientHeight * dpr);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+
+  state.size = 28;
+  draw();
+}
+
+function drawHex(x,y,size,fill,stroke,w=2){
+  ctx.beginPath();
+  for(let i=0;i<6;i++){
+    const ang = Math.PI/180*(60*i - 30); // pointy top (острая вершина вверх)
+    const px = x + size*Math.cos(ang);
+    const py = y + size*Math.sin(ang);
+    if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+  }
+  ctx.closePath();
+  if(fill){ ctx.fillStyle = fill; ctx.fill(); }
+  if(stroke){ ctx.lineWidth=w; ctx.strokeStyle = stroke; ctx.stroke(); }
+}
+
+function draw(){
+  ctx.fillStyle = getCss('--bg');
+  ctx.fillRect(0,0,canvas.clientWidth,canvas.clientHeight);
+
+  // Камера центрирована на игроке с учетом смещения
+  const playerPix = axialToPixel(state.player.q, state.player.r, state.size);
+  state.camera.x = canvas.clientWidth/2 - playerPix.x + state.cameraOffset.x;
+  state.camera.y = canvas.clientHeight/2 - playerPix.y + state.cameraOffset.y;
+  
+  // Определяем видимую область (только то, что на экране)
+  const visibleRadius = Math.ceil(Math.max(canvas.clientWidth, canvas.clientHeight) / (state.size * 2)) + 2;
+  
+  // Рисуем только видимые тайлы вокруг игрока
+  for(let dq = -visibleRadius; dq <= visibleRadius; dq++){
+    for(let dr = -visibleRadius; dr <= visibleRadius; dr++){
+      const q = state.player.q + dq;
+      const r = state.player.r + dr;
+      
+      if(!inBounds(q,r)) continue;
+      
+      // Генерируем тайл если нужно
+      ensureAreaGenerated(q,r);
+      const tile = getTile(q,r);
+      if(!tile) continue;
+      
+    const p = axialToPixel(q,r,state.size);
+      const x = p.x + state.camera.x;
+      const y = p.y + state.camera.y;
+      
+      // Пропускаем если за границами экрана
+      if(x < -state.size*2 || x > canvas.clientWidth + state.size*2 ||
+         y < -state.size*2 || y > canvas.clientHeight + state.size*2) continue;
+      
+    const fill = tile.revealed ? (tile.base===TILE.GRASS?COLORS.grass:
+                                  tile.base===TILE.SAND?COLORS.sand:
+                                  tile.base===TILE.WATER?COLORS.water:COLORS.fog)
+                               : COLORS.fog;
+      
+      // Рисуем гексагон с увеличенным размером для полного заполнения
+      // Если клетка открыта, но не посещена - делаем бледнее
+      if(tile.revealed && !tile.visited){
+        ctx.save();
+        ctx.globalAlpha = 0.6;
+        drawHex(x,y,state.size+1, fill, null, 0);
+        drawHex(x,y,state.size+1, null, 'rgba(0,0,0,0.3)', 1);
+        ctx.restore();
+      }else{
+        drawHex(x,y,state.size+1, fill, null, 0);
+        // Добавляем тонкую темную обводку
+        drawHex(x,y,state.size+1, null, 'rgba(0,0,0,0.3)', 1);
+      }
+      
+      // Hover эффект
+      if(state.hoverTile && state.hoverTile.q === q && state.hoverTile.r === r){
+        drawHex(x,y,state.size+1, 'rgba(255,255,255,0.15)', 'rgba(255,255,255,0.5)', 3);
+      }
+      
+      // объект (если открыт)
+      if(tile.revealed){
+        ctx.font = Math.floor(state.size*0.85)+"px system-ui";
+        ctx.textAlign='center'; ctx.textBaseline='middle';
+        
+        // Если объект уже посещен (или монстр побежден, или one-shot использован), делаем бледнее
+        const isUsed = tile.oneShotDone || tile.monsterDefeated || (tile.scored && (tile.obj === OBJ.FOREST || tile.obj === OBJ.ROCK));
+        
+        if(isUsed){
+          ctx.save();
+          ctx.globalAlpha = 0.4;
+        }
+        
+        switch(tile.obj){
+          case OBJ.FOREST: drawEmoji('🌲', x, y); break;
+          case OBJ.ROCK:   drawEmoji('⛰️', x, y); break;
+          case OBJ.HOME:   drawEmoji('🏠', x, y); break;
+          case OBJ.CASTLE: drawEmoji('🏰', x, y); break;
+          case OBJ.MONSTER: drawEmoji('💀', x, y); break;
+        }
+        
+        if(isUsed){
+          ctx.restore();
+        }
+      }
+    }
+  }
+  
+  // подсветка возможных ходов - соседи всех посещенных клеток
+  const validMoves = new Set();
+  
+  // Проходим по всем посещенным клеткам и собираем их соседей
+  for(let dq = -visibleRadius; dq <= visibleRadius; dq++){
+    for(let dr = -visibleRadius; dr <= visibleRadius; dr++){
+      const q = state.player.q + dq;
+      const r = state.player.r + dr;
+      
+      if(!inBounds(q,r)) continue;
+      const tile = getTile(q,r);
+      if(!tile || !tile.visited) continue;
+      
+      // Для каждой посещенной клетки добавляем её соседей
+      neighbors(q,r).forEach(n=>{
+    if(!inBounds(n.q,n.r)) return;
+        const nt = getTile(n.q,n.r);
+        if(!nt) return;
+        
+        // Добавляем в валидные ходы если это не вода (открытая или туман)
+        if(!nt.revealed || nt.base !== TILE.WATER){
+          validMoves.add(`${n.q},${n.r}`);
+        }
+      });
+    }
+  }
+  
+  // Убрали подсветку желтой обводкой - клетки и так выделяются
+
+  // игрок (с учетом смещения камеры)
+  const px = playerPix.x + state.camera.x;
+  const py = playerPix.y + state.camera.y;
+  ctx.save();
+  ctx.font = Math.floor(state.size*0.85)+"px system-ui";
+  ctx.textAlign='center'; 
+  ctx.textBaseline='middle';
+  drawEmoji('🧙', px, py);
+  ctx.restore();
+}
+
+function drawEmoji(txt, x,y){ 
+  ctx.fillStyle='#fff'; 
+  ctx.fillText(txt,x,y); 
+}
+
+function drawPawn(x,y,sz){
+  ctx.beginPath();
+  ctx.arc(x,y-sz*0.25, sz*0.22, 0, Math.PI*2);
+  ctx.fill();
+  ctx.fillRect(x-sz*0.18, y-sz*0.12, sz*0.36, sz*0.58);
+  ctx.fillRect(x-sz*0.28, y+sz*0.36, sz*0.56, sz*0.13);
+}
+
+/* ==========
+   УВЕДОМЛЕНИЯ
+   ========== */
+function showNotification(text, isGain=true){
+  const notifDiv = document.createElement('div');
+  notifDiv.className = 'notification ' + (isGain ? 'gain' : 'loss');
+  notifDiv.textContent = text;
+  
+  const container = document.getElementById('notifications');
+  container.appendChild(notifDiv);
+  
+  setTimeout(()=>{
+    notifDiv.remove();
+  }, 2000);
+}
+
+/* ==========
+   ИГРОВАЯ ЛОГИКА: клики, ходы, ресурсы и очки
+   ========== */
+canvas.addEventListener('click', onPointer);
+canvas.addEventListener('touchstart', (e)=>{ e.preventDefault(); onPointer(e.touches[0]); }, {passive:false});
+canvas.addEventListener('mousemove', onMouseMove);
+canvas.addEventListener('mousedown', onMouseDown);
+canvas.addEventListener('mouseup', onMouseUp);
+canvas.addEventListener('contextmenu', (e)=>e.preventDefault()); // отключаем контекстное меню
+
+function localToMap(x,y){
+  const playerPix = axialToPixel(state.player.q, state.player.r, state.size);
+  const worldX = x - canvas.clientWidth/2 + playerPix.x - state.cameraOffset.x;
+  const worldY = y - canvas.clientHeight/2 + playerPix.y - state.cameraOffset.y;
+  return pixelToAxial(worldX, worldY, state.size);
+}
+
+// Проверяем, является ли клетка соседом ЛЮБОЙ посещенной клетки
+function isValidMove(q,r){
+  // Проходим по всем тайлам и ищем посещенные
+  for(const [key, tile] of state.tiles){
+    if(!tile.visited) continue;
+    
+    const [tq, tr] = key.split(',').map(Number);
+    
+    // Проверяем, является ли целевая клетка соседом этой посещенной клетки
+    const isNeighbor = neighbors(tq, tr).some(n=>n.q===q && n.r===r);
+    if(isNeighbor) return true;
+  }
+  
+  return false;
+}
+
+function onMouseDown(evt){
+  if(state.over) return;
+  if(evt.button === 2){ // правая кнопка мыши
+    state.isDragging = true;
+    const rect = canvas.getBoundingClientRect();
+    state.dragStart = {
+      x: evt.clientX - rect.left,
+      y: evt.clientY - rect.top,
+      offsetX: state.cameraOffset.x,
+      offsetY: state.cameraOffset.y
+    };
+    canvas.style.cursor = 'grabbing';
+  }
+}
+
+function onMouseUp(evt){
+  if(evt.button === 2){ // правая кнопка мыши
+    state.isDragging = false;
+    canvas.style.cursor = 'pointer';
+  }
+}
+
+function onMouseMove(evt){
+  if(state.over) return;
+  const rect = canvas.getBoundingClientRect();
+  const mouseX = evt.clientX - rect.left;
+  const mouseY = evt.clientY - rect.top;
+  
+  // Если перетаскиваем камеру
+  if(state.isDragging){
+    const dx = mouseX - state.dragStart.x;
+    const dy = mouseY - state.dragStart.y;
+    state.cameraOffset.x = state.dragStart.offsetX + dx;
+    state.cameraOffset.y = state.dragStart.offsetY + dy;
+    draw();
+    return;
+  }
+  
+  const {q,r} = localToMap(mouseX, mouseY);
+  
+  if(!inBounds(q,r)){
+    state.hoverTile = null;
+    draw();
+    return;
+  }
+  
+  // Обновляем hover только если клетка изменилась
+  if(!state.hoverTile || state.hoverTile.q !== q || state.hoverTile.r !== r){
+    state.hoverTile = {q,r};
+    draw();
+  }
+}
+
+function onPointer(evt){
+  if(state.over) return;
+  // Игнорируем клик если это была правая кнопка мыши (перетаскивание)
+  if(evt.button === 2) return;
+  
+  const rect = canvas.getBoundingClientRect();
+  const {q,r} = localToMap(evt.clientX-rect.left, evt.clientY-rect.top);
+  
+  if(!inBounds(q,r)) return;
+  if(!isValidMove(q,r)) return; // Проверяем соседство с любой открытой клеткой
+  
+  ensureAreaGenerated(q,r);
+  const tile = getTile(q,r);
+  if(!tile) return;
+  
+  if(!tile.revealed){
+    tile.revealed = true;
+    if(tile.base===TILE.WATER){ draw(); return; }
+    moveTo(q,r);
+    return;
+  }
+
+  if(tile.base===TILE.WATER) return;
+
+  moveTo(q,r);
+}
+
+function moveTo(q,r){
+  const tile = getTile(q,r);
+  if(!tile) return;
+
+  // Каждый ход отнимаем 1 еду
+  if(state.food>0){ 
+    state.food--; 
+    showNotification('🍗 -1 еда', false);
+  }else{ 
+    loseHp(1); 
+    showNotification('❤️ -1 здоровье (нет еды)', false);
+  }
+
+  // базовая земля
+  if(!tile.visited){
+    if(tile.base===TILE.GRASS || tile.base===TILE.SAND){
+      addScore(1);
+      showNotification('+1 очко', true);
+    }
+  }
+
+  // объекты
+  switch(tile.obj){
+    case OBJ.FOREST: {
+      if(!tile.scored){ 
+        addScore(2); 
+        tile.scored = true; 
+        showNotification('+2 очка', true);
+      }
+      break;
+    }
+    case OBJ.ROCK: {
+      if(!tile.scored){ 
+        addScore(3); 
+        tile.scored = true; 
+        showNotification('+3 очка', true);
+      }
+      break;
+    }
+    case OBJ.HOME: {
+      if(!tile.oneShotDone){ 
+        state.food += 4; 
+        addScore(1); 
+        tile.oneShotDone=true; 
+        showNotification('🍗 +4 еды, +1 очко', true);
+      }
+      break;
+    }
+    case OBJ.CASTLE: {
+      if(!tile.oneShotDone){ 
+        state.sword++; 
+        addScore(1); 
+        tile.oneShotDone=true; 
+        showNotification('🗡️ +1 меч, +1 очко', true);
+      }
+      break;
+    }
+    case OBJ.MONSTER: {
+      if(!tile.monsterDefeated){
+      if(state.sword>0){
+        state.sword--;
+        state.food += 2;
+        addScore(3);
+          showNotification('🗡️ -1 меч, +2 еды, +3 очка', true);
+      }else{
+        loseHp(1);
+          showNotification('❤️ -1 здоровье', false);
+      }
+        tile.monsterDefeated = true;
+      tile.scored = true;
+      tile.oneShotDone = true;
+      }
+      break;
+    }
+  }
+
+  tile.visited = true;
+  tile.revealed = true;
+  state.player = {q,r};
+
+  // Открываем всех соседей игрока
+  revealNeighbors(q, r);
+
+  updateHud();
+  draw();
+}
+
+// Функция для автоматического открытия соседей игрока
+function revealNeighbors(q, r){
+  neighbors(q, r).forEach(n => {
+    if(!inBounds(n.q, n.r)) return;
+    ensureAreaGenerated(n.q, n.r);
+    const nt = getTile(n.q, n.r);
+    if(nt) {
+      nt.revealed = true;
+    }
+  });
+}
+
+function addScore(n){
+  state.score += n;
+  if(state.score > state.best){
+    state.best = state.score;
+    localStorage.setItem('hex-best', state.best);
+  }
+}
+
+function loseHp(n){
+  state.hp -= n;
+  if(state.hp<=0){
+    state.hp=0;
+    gameOver();
+  }
+}
+
+/* ==========
+   HUD
+   ========== */
+const elHpIcons = document.getElementById('hpIcons');
+const elFoodIcons = document.getElementById('foodIcons');
+const elSwordIcons = document.getElementById('swordIcons');
+const elScore = document.getElementById('score');
+const elBest = document.getElementById('best');
+
+function updateHud(){
+  // Здоровье
+  const hpBox = document.getElementById('hpBox');
+  elHpIcons.innerHTML='';
+  if(state.hp > 0){
+    hpBox.style.display='flex';
+    for(let i=0;i<state.hp;i++){
+      const span=document.createElement('span');
+      span.className='icon';
+      span.textContent='❤️';
+      elHpIcons.appendChild(span);
+    }
+  }else{
+    hpBox.style.display='none';
+  }
+  
+  // Еда (показываем до 15 иконок, потом число)
+  const foodBox = document.getElementById('foodBox');
+  elFoodIcons.innerHTML='';
+  if(state.food > 0){
+    foodBox.style.display='flex';
+    if(state.food <= 15){
+      for(let i=0;i<state.food;i++){
+        const span=document.createElement('span');
+        span.className='icon';
+        span.textContent='🍗';
+        elFoodIcons.appendChild(span);
+      }
+    }else{
+      const span=document.createElement('span');
+      span.style.fontWeight='600';
+      span.style.fontSize='18px';
+      span.textContent='×'+state.food;
+      elFoodIcons.appendChild(span);
+    }
+  }else{
+    foodBox.style.display='none';
+  }
+  
+  // Мечи (показываем до 10 иконок, потом число)
+  const swordBox = document.getElementById('swordBox');
+  elSwordIcons.innerHTML='';
+  if(state.sword > 0){
+    swordBox.style.display='flex';
+    if(state.sword <= 10){
+      for(let i=0;i<state.sword;i++){
+        const span=document.createElement('span');
+        span.className='icon';
+        span.textContent='🗡️';
+        elSwordIcons.appendChild(span);
+      }
+    }else{
+      const span=document.createElement('span');
+      span.style.fontWeight='600';
+      span.style.fontSize='18px';
+      span.textContent='×'+state.sword;
+      elSwordIcons.appendChild(span);
+    }
+  }else{
+    swordBox.style.display='none';
+  }
+  
+  elScore.textContent = state.score;
+  elBest.textContent = state.best;
+}
+
+/* ==========
+   СТАРТ/РЕСТАРТ
+   ========== */
+function newGame(){
+  state.score=0;
+  state.hp=START_HP;
+  state.food=10;
+  state.sword=2;
+  state.over=false;
+  state.seed=Date.now();
+  state.tiles.clear();
+  state.hoverTile=null;
+  state.cameraOffset={x:0,y:0};
+  state.isDragging=false;
+  
+  // Ищем безопасный старт (только трава или песок, БЕЗ объектов)
+  let startQ = 500, startR = 500;
+  for(let tries=0; tries<200; tries++){
+    const testQ = 490 + Math.floor(Math.random()*20);
+    const testR = 490 + Math.floor(Math.random()*20);
+    const testTile = getTile(testQ, testR);
+    
+    // Генерируем объекты для этой клетки
+    ensureAreaGenerated(testQ, testR);
+    
+    // Проверяем: только трава/песок и НЕТ объектов
+    if(testTile && 
+       (testTile.base === TILE.GRASS || testTile.base === TILE.SAND) && 
+       testTile.obj === OBJ.NONE){
+      startQ = testQ;
+      startR = testR;
+      break;
+    }
+  }
+  
+  state.player={q:startQ, r:startR};
+  
+  document.getElementById('over').style.display='none';
+  
+  // Генерируем начальную область
+  generateMapFeatures();
+  
+  // Открываем стартовую клетку
+  const startTile = getTile(state.player.q, state.player.r);
+  if(startTile){
+    startTile.revealed=true;
+    startTile.visited=true;
+  }
+  
+  // Открываем всех соседей игрока
+  revealNeighbors(state.player.q, state.player.r);
+  
+  updateHud();
+  draw();
+}
+
+function gameOver(){
+  state.over=true;
+  document.getElementById('finalScore').textContent = state.score;
+  document.getElementById('over').style.display='grid';
+}
+
+document.getElementById('new').onclick=newGame;
+document.getElementById('again').onclick=newGame;
+document.getElementById('resetBest').onclick=function(){
+  if(confirm('Вы уверены, что хотите сбросить рекорд?')){
+    state.best = 0;
+    localStorage.setItem('hex-best', 0);
+    updateHud();
+  }
+};
+
+/* ==========
+   ИНИЦИАЛИЗАЦИЯ
+   ========== */
+function fitCanvas(){
+  const w = document.getElementById('wrap').clientWidth;
+  const h = document.getElementById('wrap').clientHeight;
+  canvas.style.width = w+'px';
+  canvas.style.height= h+'px';
+}
+
+window.addEventListener('resize', ()=>{ fitCanvas(); resize(); });
+fitCanvas();
+newGame();
+resize();
+</script>
+</body>
+</html>
