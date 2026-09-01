@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
-<title>Hex Quest</title>
+<title>Hexagons</title>
 <style>
   :root{
     --bg:#0d0d0d;
@@ -16,7 +16,10 @@
     --hl:#ffd54a;
     --bad:#ff5a6a;
   }
-  html,body{height:100%;margin:0;background:var(--bg);color:var(--ui);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;}
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--ui);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;overflow-x:hidden;}
+  /* Скрытие системного скроллбара */
+  *{scrollbar-width:none;-ms-overflow-style:none;}
+  *::-webkit-scrollbar{display:none;}
   #wrap{position:relative;height:100%;overflow:hidden;}
   canvas{position:absolute;inset:0;display:block;touch-action:manipulation;cursor:pointer;}
   /* HUD */
@@ -27,8 +30,8 @@
   .icon{font-size:20px;line-height:1}
   .counter{min-width:24px;text-align:center;font-variant-numeric:tabular-nums}
   #scoreBox{position:absolute;right:8px;top:8px;display:flex;flex-direction:column;gap:8px;z-index:2}
-  #scoreBox .card{background:rgba(0,0,0,.35);padding:8px 12px;border-radius:10px;backdrop-filter: blur(4px);}
-  #questBox{position:absolute;top:8px;left:50%;transform:translateX(-50%);z-index:2;min-width:280px;max-width:400px}
+  #scoreBox .card{background:rgba(0,0,0,.35);padding:8px 12px;border-radius:10px;backdrop-filter: blur(4px);min-width:120px;text-align:center;font-size:14px;font-weight:600}
+  #questBox{position:absolute;bottom:60px;left:50%;transform:translateX(-50%);z-index:2;min-width:280px;max-width:400px}
   #questBox .questContent{background:rgba(0,0,0,.4);padding:10px 14px;border-radius:12px;backdrop-filter:blur(6px);display:flex;align-items:center;gap:10px;border:2px solid rgba(102,126,234,0.5);box-shadow:0 4px 12px rgba(0,0,0,.3)}
   #questBox .questIcon{font-size:28px;line-height:1}
   #questBox .questInfo{flex:1}
@@ -57,20 +60,54 @@
   #over .leaderboardTable .charIcon{font-size:24px;text-align:center}
   #over .leaderboardTable .playerName{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   #over .leaderboardTable .score{font-weight:600;text-align:right;color:#4ade80}
-  #legend{position:absolute;left:8px;bottom:8px;background:rgba(0,0,0,.3);padding:8px 10px;border-radius:10px;font-size:12px;line-height:1.35;max-width:min(92vw,520px)}
-  #legend b{font-weight:700}
   /* Notifications */
-  #notifications{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);z-index:2;pointer-events:none;width:min(90vw,600px);display:flex;flex-direction:column;gap:8px;max-height:300px;overflow-y:auto}
-  .notification{background:rgba(13,13,13,0.95);padding:12px 20px;border-radius:12px;backdrop-filter:blur(10px);border:2px solid rgba(102,126,234,0.6);box-shadow:0 6px 20px rgba(0,0,0,.7);animation:notifySlideUp 0.4s ease-out;font-size:15px;font-weight:600;text-align:center}
+  #notifications{position:absolute;top:8px;right:8px;z-index:1;pointer-events:none;width:min(280px,calc(100vw - 16px));display:flex;flex-direction:column;gap:6px;max-height:calc(100vh - 200px);overflow-y:auto;margin-top:170px;scrollbar-width:none;-ms-overflow-style:none}
+  #notifications::-webkit-scrollbar{display:none}
+  .notification{background:rgba(13,13,13,0.9);padding:8px 12px;border-radius:8px;backdrop-filter:blur(8px);border:2px solid rgba(102,126,234,0.5);box-shadow:0 4px 12px rgba(0,0,0,.6);animation:notifySlideIn 0.3s ease-out;font-size:13px;font-weight:600;text-align:left}
   .notification.positive{border-color:#4ade80;color:#4ade80}
   .notification.negative{border-color:#ff5a6a;color:#ff5a6a}
   .notification.neutral{border-color:#ffd54a;color:#ffd54a}
-  @keyframes notifySlideUp{
-    0%{opacity:0;transform:translateY(40px) scale(0.95)}
-    100%{opacity:1;transform:translateY(0) scale(1)}
+  @keyframes notifySlideIn{
+    0%{opacity:0;transform:translateX(30px) scale(0.9)}
+    100%{opacity:1;transform:translateX(0) scale(1)}
   }
-  @media (max-width:560px){
-    #legend{display:none}
+  /* Mobile Optimizations */
+  @media (max-width:640px){
+    .hud{gap:6px}
+    .meter{padding:4px 8px;gap:4px;border-radius:8px}
+    .icon{font-size:18px}
+    .counter{font-size:14px;min-width:20px}
+    #scoreBox{right:4px;top:4px;gap:6px}
+    #scoreBox .card{padding:6px 10px;font-size:14px;min-width:100px}
+    #questBox{bottom:50px;min-width:240px;max-width:calc(100vw - 16px)}
+    #questBox .questContent{padding:8px 10px;gap:8px}
+    #questBox .questIcon{font-size:24px}
+    #questBox .questTitle{font-size:10px}
+    #questBox .questText{font-size:12px}
+    #questBox .questProgressText{font-size:10px}
+    #questBox .questReward{font-size:14px}
+    #buttons{right:4px;bottom:4px;gap:6px}
+    button{padding:8px 12px;font-size:14px}
+    #notifications{width:min(220px,calc(100vw - 16px));margin-top:120px;gap:4px}
+    .notification{padding:6px 10px;font-size:11px;border-radius:6px}
+  }
+  @media (max-width:400px){
+    .hud{left:4px;top:4px;gap:4px}
+    .meter{padding:3px 6px;gap:3px}
+    .icon{font-size:16px}
+    .counter{font-size:12px}
+    #scoreBox .card{padding:5px 8px;font-size:12px;min-width:90px}
+    #questBox{bottom:45px;min-width:200px}
+    #questBox .questContent{padding:6px 8px;gap:6px}
+    #questBox .questIcon{font-size:20px}
+    #questBox .questTitle{font-size:9px}
+    #questBox .questText{font-size:11px}
+    #questBox .questProgressBar{height:5px}
+    #questBox .questProgressText{font-size:9px;min-width:35px}
+    #questBox .questReward{font-size:12px}
+    button{padding:6px 10px;font-size:12px}
+    #notifications{width:min(180px,calc(100vw - 12px));margin-top:100px;gap:3px}
+    .notification{padding:5px 8px;font-size:10px;border-width:1px}
   }
   /* Main Menu */
   #mainMenu{position:absolute;inset:0;display:none;place-items:center;background:linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);z-index:5;}
@@ -93,8 +130,8 @@
   #mainMenu .playerNameSection input::placeholder{color:#888}
   #mainMenu .nameWarning{font-size:12px;color:#ffd54a;margin:6px 0 0;text-align:center}
   /* Shop */
-  #shop{position:absolute;inset:0;display:none;place-items:center;background:linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);z-index:5;overflow-y:auto}
-  #shop .container{padding:30px;max-width:600px;width:90%}
+  #shop{position:absolute;inset:0;display:none;background:linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);z-index:5;overflow:hidden;flex-direction:column}
+  #shop .container{padding:30px 30px 100px;max-width:600px;width:90%;margin:0 auto;overflow-y:auto;flex:1}
   #shop h1{font-size:42px;margin:0 0 10px;text-align:center;background:linear-gradient(135deg, #f093fb 0%, #f5576c 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
   #shop .balance{text-align:center;font-size:24px;margin-bottom:30px;background:rgba(255,255,255,0.1);padding:12px;border-radius:12px}
   #shop .tabs{display:flex;gap:10px;margin-bottom:20px;justify-content:center}
@@ -102,22 +139,90 @@
   #shop .tab:hover{background:rgba(255,255,255,0.15)}
   #shop .tab.active{background:rgba(102,126,234,0.3);border-color:#667eea}
   #shop .items{display:grid;grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));gap:16px;margin-bottom:20px}
-  #shop .item{background:rgba(255,255,255,0.08);padding:20px;border-radius:16px;text-align:center;cursor:pointer;transition:all 0.3s;border:2px solid transparent}
+  #shop .item{background:rgba(255,255,255,0.08);padding:20px;border-radius:16px;text-align:center;cursor:pointer;transition:all 0.3s;border:2px solid transparent;position:relative}
   #shop .item:hover{transform:translateY(-4px);background:rgba(255,255,255,0.12);border-color:rgba(102,126,234,0.5)}
   #shop .item.owned{border-color:#4ade80;background:rgba(74,222,128,0.1)}
-  #shop .item.selected{border-color:#667eea;box-shadow:0 0 20px rgba(102,126,234,0.6)}
+  #shop .item.selected{border-color:#ffd700;background:rgba(255,215,0,0.15);box-shadow:0 0 25px rgba(255,215,0,0.8);transform:translateY(-6px) scale(1.05)}
+  #shop .item.selected::before{content:'✓';position:absolute;top:8px;right:8px;background:#ffd700;color:#000;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:14px}
   #shop .item .icon{font-size:48px;margin-bottom:8px}
   #shop .item .itemName{font-size:16px;font-weight:600;margin-bottom:4px}
   #shop .item .description{font-size:11px;color:#b0b0d0;margin-bottom:8px;line-height:1.3;min-height:32px}
   #shop .item .price{font-size:18px;color:#ffd700;font-weight:600}
   #shop .item .status{font-size:12px;color:#4ade80;margin-top:4px}
-  #shop .shopButtons{display:flex;gap:12px}
+  .stars{margin-top:6px;display:flex;gap:2px;justify-content:center}
+  .star-filled{opacity:1;filter:none}
+  .star-empty{opacity:0.3;filter:blur(1px)}
+  #shop .shopButtons{position:fixed;bottom:0;left:0;right:0;background:linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);padding:20px;display:flex;gap:12px;z-index:10;border-top:2px solid rgba(255,255,255,0.1)}
   #shop button{flex:1;padding:14px;font-size:16px;border-radius:12px;cursor:pointer;border:none;font-weight:600;transition:all 0.3s}
   #shop .backBtn{background:#666;color:white}
   #shop .backBtn:hover{background:#777}
   #shop .selectBtn{background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);color:white}
   #shop .selectBtn:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(102,126,234,0.4)}
   #shop .selectBtn:disabled{background:#444;cursor:not-allowed;transform:none}
+  
+  /* Универсальные стили для примагниченных кнопок */
+  .fixedButtons{
+    position:fixed;
+    bottom:0;
+    left:0;
+    right:0;
+    background:linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    padding:20px;
+    display:flex;
+    gap:12px;
+    z-index:10;
+    border-top:2px solid rgba(255,255,255,0.1);
+  }
+  .fixedButtons button{
+    flex:1;
+    padding:14px;
+    font-size:16px;
+    border-radius:12px;
+    cursor:pointer;
+    border:none;
+    font-weight:600;
+    transition:all 0.3s;
+  }
+  .fixedButtons .backBtn{
+    background:#666;
+    color:white;
+  }
+  .fixedButtons .backBtn:hover{
+    background:#777;
+  }
+  
+  /* Простой разделитель в магазине */
+  .shopDivider{grid-column:1/-1}
+  
+  /* Инвентарь в игре */
+  #inventory{position:absolute;left:20px;top:50%;transform:translateY(-50%);z-index:10;display:none}
+  #inventory .inventorySlots{display:flex;flex-direction:column;gap:8px}
+  #inventory .slot{width:60px;height:60px;background:rgba(0,0,0,0.7);border:2px solid #666;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.3s;position:relative}
+  #inventory .slot:hover{border-color:#ffd700;background:rgba(0,0,0,0.8)}
+  #inventory .slot.equipped{border-color:#4ade80;background:rgba(74,222,128,0.2)}
+  #inventory .slot .itemIcon{font-size:24px}
+  #inventory .slot .itemCount{position:absolute;bottom:2px;right:2px;background:rgba(0,0,0,0.8);color:white;font-size:10px;padding:1px 3px;border-radius:3px;min-width:12px;text-align:center}
+  
+  /* Магазин предметов */
+  .itemCategory{margin-bottom:20px}
+  .itemCategory h3{color:#ffd700;margin-bottom:10px;font-size:18px;text-align:center}
+  .itemCategory .items{display:grid;grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));gap:12px}
+  .itemCategory .item{background:rgba(255,255,255,0.08);padding:16px;border-radius:12px;text-align:center;cursor:pointer;transition:all 0.3s;border:2px solid transparent;position:relative}
+  .itemCategory .item:hover{transform:translateY(-2px);background:rgba(255,255,255,0.12);border-color:rgba(102,126,234,0.5)}
+  .itemCategory .item.owned{border-color:#4ade80;background:rgba(74,222,128,0.1)}
+  .itemCategory .item.equipped{border-color:#ffd700;background:rgba(255,215,0,0.1)}
+  .itemCategory .item.selected{border-color:#ffd700;background:rgba(255,215,0,0.15);box-shadow:0 0 20px rgba(255,215,0,0.6);transform:translateY(-4px) scale(1.03)}
+  .itemCategory .item.selected::before{content:'✓';position:absolute;top:6px;right:6px;background:#ffd700;color:#000;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:12px}
+  .itemCategory .item .icon{font-size:36px;margin-bottom:6px}
+  .itemCategory .item .itemName{font-size:14px;font-weight:600;margin-bottom:4px}
+  .itemCategory .item .description{font-size:10px;color:#b0b0d0;margin-bottom:6px;line-height:1.3;min-height:24px}
+  .itemCategory .item .price{font-size:16px;color:#ffd700;font-weight:600}
+  .itemCategory .item .ownedCount{position:absolute;top:4px;right:4px;background:rgba(74,222,128,0.8);color:white;font-size:10px;padding:2px 4px;border-radius:4px;min-width:16px;text-align:center}
+  
+  /* Специальные стили для инвентаря в магазине */
+  #shopInventory .item{min-height:140px}
+  #shopInventory .item button{margin-top:8px}
+  
   /* Hide game UI when not playing */
   .hideWhenNotPlaying{display:none}
   /* Event dialog */
@@ -149,6 +254,26 @@
   #dragonDeathDialog button:hover{background:#ff7a8a;transform:translateY(-2px);box-shadow:0 8px 20px rgba(255,90,106,0.4)}
   @keyframes dragonDeathShake{0%,100%{transform:translateX(0)}10%,30%,50%,70%,90%{transform:translateX(-10px)}20%,40%,60%,80%{transform:translateX(10px)}}
   @keyframes dragonDeathPulse{0%,100%{transform:scale(1);filter:brightness(1)}50%{transform:scale(1.1);filter:brightness(1.3)}}
+  /* Octopus Death Dialog */
+  #octopusDeathDialog{position:absolute;inset:0;display:none;place-items:center;background:rgba(0,0,40,.95);backdrop-filter:blur(8px);z-index:15}
+  #octopusDeathDialog .panel{background:linear-gradient(135deg, #0a1929 0%, #001529 100%);padding:40px;border-radius:20px;text-align:center;width:min(92vw,500px);border:3px solid #6a5aff;box-shadow:0 0 60px rgba(106,90,255,0.8), 0 10px 50px rgba(0,0,0,.9);animation:octopusShake 0.5s}
+  #octopusDeathDialog .octopusIcon{font-size:120px;margin:20px 0;animation:octopusTentacles 2s infinite}
+  #octopusDeathDialog h2{font-size:36px;margin:20px 0;color:#6a5aff;text-shadow:0 0 20px rgba(106,90,255,0.8)}
+  #octopusDeathDialog .message{font-size:20px;line-height:1.6;margin:20px 0;color:#b0b0e0}
+  #octopusDeathDialog button{padding:16px 32px;font-size:18px;border-radius:12px;background:#6a5aff;color:white;border:none;cursor:pointer;font-weight:600;margin-top:20px;transition:all 0.3s}
+  #octopusDeathDialog button:hover{background:#8a7aff;transform:translateY(-2px);box-shadow:0 8px 20px rgba(106,90,255,0.4)}
+  @keyframes octopusShake{0%,100%{transform:translateX(0) rotate(0deg)}10%,30%,50%,70%,90%{transform:translateX(-8px) rotate(-2deg)}20%,40%,60%,80%{transform:translateX(8px) rotate(2deg)}}
+  @keyframes octopusTentacles{0%,100%{transform:scale(1) rotate(0deg)}25%{transform:scale(1.05) rotate(-5deg)}50%{transform:scale(0.95) rotate(0deg)}75%{transform:scale(1.05) rotate(5deg)}}
+  /* Octopus Victory Dialog */
+  #octopusVictoryDialog{position:absolute;inset:0;display:none;place-items:center;background:rgba(0,0,40,.95);backdrop-filter:blur(8px);z-index:15}
+  #octopusVictoryDialog .panel{background:linear-gradient(135deg, #0a1929 0%, #001a3d 100%);padding:40px;border-radius:20px;text-align:center;width:min(92vw,500px);border:3px solid #4aff8a;box-shadow:0 0 60px rgba(74,255,138,0.8), 0 10px 50px rgba(0,0,0,.9);animation:octopusVictoryBounce 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55)}
+  #octopusVictoryDialog .octopusIcon{font-size:120px;margin:20px 0;animation:octopusVictorySpin 3s infinite}
+  #octopusVictoryDialog h2{font-size:36px;margin:20px 0;color:#4aff8a;text-shadow:0 0 20px rgba(74,255,138,0.8)}
+  #octopusVictoryDialog .message{font-size:20px;line-height:1.6;margin:20px 0;color:#b0f0d0}
+  #octopusVictoryDialog button{padding:16px 32px;font-size:18px;border-radius:12px;background:#4aff8a;color:#001a3d;border:none;cursor:pointer;font-weight:600;margin-top:20px;transition:all 0.3s}
+  #octopusVictoryDialog button:hover{background:#6affaa;transform:translateY(-2px);box-shadow:0 8px 20px rgba(74,255,138,0.4)}
+  @keyframes octopusVictoryBounce{0%{transform:scale(0.3);opacity:0}50%{transform:scale(1.05)}100%{transform:scale(1);opacity:1}}
+  @keyframes octopusVictorySpin{0%{transform:rotate(0deg) scale(1)}25%{transform:rotate(-10deg) scale(1.05)}50%{transform:rotate(10deg) scale(1)}75%{transform:rotate(-10deg) scale(1.05)}100%{transform:rotate(0deg) scale(1)}}
   /* Treasure Dialog */
   #treasureDialog{position:absolute;inset:0;display:none;place-items:center;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);z-index:15}
   #treasureDialog .panel{background:linear-gradient(135deg, #ffd700 0%, #ffed4e 50%, #ffd700 100%);padding:40px;border-radius:20px;text-align:center;width:min(92vw,500px);border:3px solid #fff;box-shadow:0 0 60px rgba(255,215,0,0.8), 0 10px 50px rgba(0,0,0,.9);animation:treasureBounce 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55)}
@@ -160,9 +285,32 @@
   #treasureDialog button:hover{background:#2a2a3e;transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,0,0,0.4)}
   @keyframes treasureBounce{0%{transform:scale(0.3) rotate(-5deg);opacity:0}50%{transform:scale(1.05) rotate(2deg)}100%{transform:scale(1) rotate(0);opacity:1}}
   @keyframes treasureSpin{0%{transform:rotate(0deg) scale(1)}25%{transform:rotate(-5deg) scale(1.05)}50%{transform:rotate(5deg) scale(1)}75%{transform:rotate(-5deg) scale(1.05)}100%{transform:rotate(0deg) scale(1)}}
+  /* Phoenix Revival Dialog */
+  #phoenixDialog{position:absolute;inset:0;display:none;place-items:center;background:rgba(255,100,0,.85);backdrop-filter:blur(8px);z-index:15}
+  #phoenixDialog .panel{background:linear-gradient(135deg, #ff6b35 0%, #f7931e 50%, #ff6b35 100%);padding:40px;border-radius:20px;text-align:center;width:min(92vw,500px);border:3px solid #fff;box-shadow:0 0 60px rgba(255,107,53,0.8), 0 10px 50px rgba(0,0,0,.9);animation:phoenixRevival 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55)}
+  #phoenixDialog .phoenixIcon{font-size:120px;margin:20px 0;animation:phoenixFlame 2s infinite}
+  #phoenixDialog h2{font-size:36px;margin:20px 0;color:#fff;text-shadow:0 2px 4px rgba(0,0,0,0.5)}
+  #phoenixDialog .message{font-size:20px;line-height:1.6;margin:20px 0;color:#fff;font-weight:600}
+  #phoenixDialog .revivalStats{display:flex;gap:20px;justify-content:center;margin:20px 0}
+  #phoenixDialog .stat{font-size:18px;font-weight:700;color:#fff;text-shadow:0 2px 4px rgba(0,0,0,0.5)}
+  #phoenixDialog button{padding:16px 32px;font-size:18px;border-radius:12px;background:#fff;color:#ff6b35;border:none;cursor:pointer;font-weight:600;margin-top:20px;transition:all 0.3s}
+  #phoenixDialog button:hover{background:#f0f0f0;transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,0,0,0.4)}
+  @keyframes phoenixRevival{0%{transform:scale(0.3) rotate(-5deg);opacity:0}50%{transform:scale(1.05) rotate(2deg)}100%{transform:scale(1) rotate(0);opacity:1}}
+  @keyframes phoenixFlame{0%,100%{transform:scale(1) rotate(0deg)}25%{transform:scale(1.1) rotate(-2deg)}50%{transform:scale(0.95) rotate(0deg)}75%{transform:scale(1.1) rotate(2deg)}}
+  /* Bottle Message Dialog */
+  #bottleDialog{position:absolute;inset:0;display:none;place-items:center;background:rgba(0,40,80,.92);backdrop-filter:blur(8px);z-index:15}
+  #bottleDialog .panel{background:linear-gradient(135deg, #1e3a5f 0%, #2a5a8f 100%);padding:40px;border-radius:20px;text-align:center;width:min(92vw,500px);border:3px solid #4a9eff;box-shadow:0 0 60px rgba(74,158,255,0.6), 0 10px 50px rgba(0,0,0,.9);animation:bottleBounce 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55)}
+  #bottleDialog .bottleIcon{font-size:100px;margin:20px 0;animation:bottleFloat 3s infinite ease-in-out}
+  #bottleDialog h2{font-size:32px;margin:20px 0;color:#4a9eff;text-shadow:0 0 20px rgba(74,158,255,0.8)}
+  #bottleDialog .messageText{font-size:18px;line-height:1.8;margin:24px 0;padding:20px;background:rgba(255,255,255,0.1);border-radius:12px;color:#e0f0ff;font-style:italic;border:2px solid rgba(74,158,255,0.3);min-height:80px}
+  #bottleDialog .score{font-size:20px;color:#4ade80;margin:16px 0;font-weight:600}
+  #bottleDialog button{padding:16px 32px;font-size:18px;border-radius:12px;background:#4a9eff;color:white;border:none;cursor:pointer;font-weight:600;margin-top:20px;transition:all 0.3s}
+  #bottleDialog button:hover{background:#6aafff;transform:translateY(-2px);box-shadow:0 8px 20px rgba(74,158,255,0.4)}
+  @keyframes bottleBounce{0%{transform:scale(0.3) translateY(-100px);opacity:0}50%{transform:scale(1.05) translateY(-10px)}100%{transform:scale(1) translateY(0);opacity:1}}
+  @keyframes bottleFloat{0%,100%{transform:translateY(0px) rotate(-2deg)}50%{transform:translateY(-10px) rotate(2deg)}}
   /* Leaderboard */
-  #leaderboard{position:absolute;inset:0;display:none;place-items:center;background:linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);z-index:5;overflow-y:auto}
-  #leaderboard .container{padding:30px;max-width:600px;width:90%}
+  #leaderboard{position:absolute;inset:0;display:none;background:linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);z-index:5;overflow-y:auto;padding:20px 0 100px}
+  #leaderboard .container{padding:30px;max-width:600px;width:90%;margin:0 auto;overflow-y:auto}
   #leaderboard h1{font-size:42px;margin:0 0 10px;text-align:center;background:linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
   #leaderboard .leaderboardTable{background:rgba(255,255,255,0.05);border-radius:16px;overflow:hidden;margin-bottom:20px}
   #leaderboard .leaderboardRow{display:grid;grid-template-columns:60px 50px 1fr 80px;gap:12px;padding:14px 20px;align-items:center;border-bottom:1px solid rgba(255,255,255,0.1);transition:all 0.3s}
@@ -178,16 +326,19 @@
   #leaderboard .charIcon{font-size:28px;text-align:center}
   #leaderboard .playerName{font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   #leaderboard .score{font-size:18px;font-weight:600;text-align:right;color:#4ade80}
-  #leaderboard .backBtn{width:100%;padding:14px;font-size:16px;border-radius:12px;cursor:pointer;border:none;font-weight:600;background:#666;color:white;transition:all 0.3s}
-  #leaderboard .backBtn:hover{background:#777}
   @keyframes highlightPlayer{0%,100%{box-shadow:0 0 20px rgba(102,126,234,0.5)}50%{box-shadow:0 0 30px rgba(102,126,234,0.8)}}
   /* Damage Effect */
   #damageEffect{position:fixed;inset:0;pointer-events:none;z-index:100;opacity:0;background:radial-gradient(circle at center, transparent 30%, rgba(255,0,0,0.4) 100%);transition:opacity 0.1s}
   #damageEffect.show{animation:damageFlash 0.5s ease-out}
   @keyframes damageFlash{0%{opacity:0}20%{opacity:1}100%{opacity:0}}
+  
+  /* Heal Effect */
+  #healEffect{position:fixed;inset:0;pointer-events:none;z-index:100;opacity:0;background:radial-gradient(circle at center, transparent 30%, rgba(0,255,0,0.4) 100%);transition:opacity 0.1s}
+  #healEffect.show{animation:healFlash 0.5s ease-out}
+  @keyframes healFlash{0%{opacity:0}20%{opacity:1}100%{opacity:0}}
   /* Achievements */
-  #achievements{position:absolute;inset:0;display:none;place-items:center;background:linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);z-index:5;overflow-y:auto}
-  #achievements .container{padding:30px;max-width:600px;width:90%}
+  #achievements{position:absolute;inset:0;display:none;background:linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);z-index:5;overflow-y:auto;padding:20px 0 100px}
+  #achievements .container{padding:30px;max-width:600px;width:90%;margin:0 auto;overflow-y:auto}
   #achievements h1{font-size:42px;margin:0 0 10px;text-align:center;background:linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
   #achievements .achievementsList{display:flex;flex-direction:column;gap:16px;margin-bottom:20px}
   #achievements .achievement{background:rgba(255,255,255,0.08);padding:20px;border-radius:16px;display:flex;gap:16px;align-items:center;border:2px solid transparent;transition:all 0.3s}
@@ -199,8 +350,6 @@
   #achievements .achievement .description{font-size:14px;color:#b0b0d0;margin-bottom:6px}
   #achievements .achievement .reward{font-size:16px;color:#ffd700;font-weight:600}
   #achievements .achievement .status{font-size:14px;color:#4ade80;margin-top:6px}
-  #achievements .backBtn{width:100%;padding:14px;font-size:16px;border-radius:12px;cursor:pointer;border:none;font-weight:600;background:#666;color:white;transition:all 0.3s}
-  #achievements .backBtn:hover{background:#777}
   /* Achievement Notification */
   .achievementNotification{position:fixed;top:50%;left:50%;transform:translate(-50%, -50%);z-index:1000;background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);padding:30px 40px;border-radius:20px;text-align:center;border:3px solid #ffd700;box-shadow:0 0 40px rgba(255,215,0,0.6), 0 10px 50px rgba(0,0,0,0.8);animation:achievementPop 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);min-width:320px}
   .achievementNotification .title{font-size:24px;font-weight:700;margin-bottom:12px;color:#ffd700;text-shadow:0 2px 10px rgba(0,0,0,0.5)}
@@ -209,8 +358,8 @@
   .achievementNotification .reward{font-size:18px;color:#4ade80;font-weight:600;margin-top:10px}
   @keyframes achievementPop{0%{transform:translate(-50%, -50%) scale(0.3);opacity:0}50%{transform:translate(-50%, -50%) scale(1.1)}100%{transform:translate(-50%, -50%) scale(1);opacity:1}}
   /* Encyclopedia */
-  #encyclopedia{position:absolute;inset:0;display:none;place-items:center;background:linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);z-index:5;overflow-y:auto}
-  #encyclopedia .container{padding:30px;max-width:700px;width:90%}
+  #encyclopedia{position:absolute;inset:0;display:none;background:linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);z-index:5;overflow-y:auto;padding:20px 0 100px}
+  #encyclopedia .container{padding:30px;max-width:700px;width:90%;margin:0 auto;overflow-y:auto}
   #encyclopedia h1{font-size:42px;margin:0 0 20px;text-align:center;background:linear-gradient(135deg, #4ade80 0%, #22c55e 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
   #encyclopedia .section{margin-bottom:30px}
   #encyclopedia .section h2{font-size:24px;margin:0 0 16px;color:#ffd700}
@@ -220,8 +369,84 @@
   #encyclopedia .encItem .icon{font-size:48px;text-align:center;margin-bottom:8px}
   #encyclopedia .encItem .name{font-size:18px;font-weight:600;margin-bottom:8px;text-align:center;color:#ffd700}
   #encyclopedia .encItem .desc{font-size:14px;line-height:1.5;color:#d0d0e0}
-  #encyclopedia .backBtn{width:100%;padding:14px;font-size:16px;border-radius:12px;cursor:pointer;border:none;font-weight:600;background:#666;color:white;transition:all 0.3s;margin-top:20px}
-  #encyclopedia .backBtn:hover{background:#777}
+  /* Mobile Optimizations for Menus */
+  @media (max-width:640px){
+    #mainMenu .container{padding:20px;max-width:90%}
+    #mainMenu h1{font-size:42px}
+    #mainMenu .subtitle{font-size:16px;margin:0 0 20px}
+    #mainMenu .stats{gap:12px;margin:20px 0;font-size:16px;flex-wrap:wrap}
+    #mainMenu .stat{padding:10px 16px}
+    #mainMenu .stat b{font-size:24px}
+    #mainMenu button{padding:14px;font-size:16px}
+    #mainMenu .playerNameSection input{padding:10px;font-size:14px}
+    #shop .container{padding:20px 20px 100px}
+    #shop h1{font-size:32px}
+    #shop .balance{font-size:20px;padding:10px}
+    #shop .tabs{gap:8px;flex-wrap:wrap}
+    #shop .tab{padding:10px 18px;font-size:14px}
+    #shop .items{grid-template-columns:repeat(auto-fit, minmax(120px, 1fr));gap:12px}
+    #shop .item{padding:16px}
+    #shop .item .icon{font-size:40px}
+    #shop .item .itemName{font-size:14px}
+    #shop .item .description{font-size:10px;min-height:28px}
+    #shop .item .price{font-size:16px}
+    #shop button{padding:12px;font-size:14px}
+    #shop .shopButtons{padding:15px}
+    .fixedButtons{padding:15px}
+    .fixedButtons button{padding:12px;font-size:14px}
+    #encyclopedia .container{padding:20px}
+    #encyclopedia h1{font-size:32px;margin:0 0 16px}
+    #encyclopedia .section h2{font-size:20px;margin:0 0 12px}
+    #encyclopedia .encItems{grid-template-columns:1fr;gap:12px}
+    #encyclopedia .encItem{padding:12px}
+    #encyclopedia .encItem .icon{font-size:40px}
+    #encyclopedia .encItem .name{font-size:16px}
+    #encyclopedia .encItem .desc{font-size:13px}
+    #over .panel{padding:18px;width:min(95vw,380px)}
+    #over h2{font-size:24px}
+    #over .big{font-size:32px;margin:0 0 12px}
+    #eventDialog .content{padding:24px 20px;width:min(90vw, 400px)}
+    #eventDialog h2{font-size:26px}
+    #eventDialog .message{font-size:15px;margin:14px 0}
+    #eventDialog button{padding:12px;font-size:15px}
+  }
+  @media (max-width:400px){
+    #mainMenu .container{padding:16px}
+    #mainMenu h1{font-size:36px}
+    #mainMenu .subtitle{font-size:14px}
+    #mainMenu .stats{gap:8px;font-size:14px}
+    #mainMenu .stat{padding:8px 12px}
+    #mainMenu .stat b{font-size:20px}
+    #mainMenu button{padding:12px;font-size:14px}
+    #shop .container{padding:16px 16px 100px}
+    #shop h1{font-size:28px}
+    #shop .balance{font-size:18px;padding:8px}
+    #shop .tab{padding:8px 14px;font-size:13px}
+    #shop .items{grid-template-columns:1fr;gap:10px}
+    #shop .item{padding:14px}
+    #shop .item .icon{font-size:36px}
+    #shop .item .itemName{font-size:13px}
+    #shop .item .description{font-size:9px;min-height:24px}
+    #shop .item .price{font-size:14px}
+    #shop button{padding:10px;font-size:13px}
+    #shop .shopButtons{padding:12px}
+    .fixedButtons{padding:12px}
+    .fixedButtons button{padding:10px;font-size:13px}
+    #encyclopedia .container{padding:16px}
+    #encyclopedia h1{font-size:28px}
+    #encyclopedia .section h2{font-size:18px}
+    #encyclopedia .encItem{padding:10px}
+    #encyclopedia .encItem .icon{font-size:36px}
+    #encyclopedia .encItem .name{font-size:14px}
+    #encyclopedia .encItem .desc{font-size:12px}
+    #over .panel{padding:16px;width:min(96vw,360px)}
+    #over h2{font-size:20px}
+    #over .big{font-size:28px;margin:0 0 10px}
+    #eventDialog .content{padding:20px 16px;width:min(92vw, 360px)}
+    #eventDialog h2{font-size:22px}
+    #eventDialog .message{font-size:14px;margin:12px 0}
+    #eventDialog button{padding:10px;font-size:14px}
+  }
 </style>
 </head>
 <body>
@@ -231,7 +456,7 @@
   <!-- Main Menu -->
   <div id="mainMenu">
     <div class="container">
-      <h1>🔶 Hex Quest 🔶</h1>
+      <h1>🔶 Hexagons 🔶</h1>
       <p class="subtitle">Исследуй бесконечный мир гексагонов</p>
       
       <div class="stats">
@@ -294,14 +519,15 @@
       <div class="tabs">
         <div class="tab active" id="tabCharacters">👥 Персонажи</div>
         <div class="tab" id="tabUpgrades">⬆️ Улучшения</div>
+        <div class="tab" id="tabItems">🎒 Предметы</div>
       </div>
       
       <div class="items" id="shopItems"></div>
-      
-      <div class="shopButtons">
-        <button class="backBtn" id="shopBack">◀️ Назад</button>
-        <button class="selectBtn" id="shopSelect" disabled>Выбрать иконку</button>
-      </div>
+    </div>
+    
+    <div class="shopButtons">
+      <button class="backBtn" id="shopBack">◀️ Назад</button>
+      <button class="selectBtn" id="shopSelect" disabled>Выбрать иконку</button>
     </div>
   </div>
 
@@ -313,7 +539,9 @@
       <div class="leaderboardTable" id="leaderboardTable">
         <!-- Таблица будет заполнена JavaScript -->
       </div>
-      
+    </div>
+    
+    <div class="fixedButtons">
       <button class="backBtn" id="leaderboardBack">◀️ Назад</button>
     </div>
   </div>
@@ -326,7 +554,9 @@
       <div class="achievementsList" id="achievementsList">
         <!-- Достижения будут заполнены JavaScript -->
       </div>
-      
+    </div>
+    
+    <div class="fixedButtons">
       <button class="backBtn" id="achievementsBack">◀️ Назад</button>
     </div>
   </div>
@@ -352,7 +582,7 @@
           <div class="encItem">
             <div class="icon">🟦</div>
             <div class="name">Вода</div>
-            <div class="desc">Непроходимая местность. Нельзя пересечь.</div>
+            <div class="desc">Непроходимая местность. Нельзя пересечь (кроме Русалки и корабля).</div>
           </div>
           <div class="encItem">
             <div class="icon">🏜️</div>
@@ -383,17 +613,17 @@
           <div class="encItem">
             <div class="icon">🌲</div>
             <div class="name">Лес</div>
-            <div class="desc">Труднопроходимая местность. Стоимость хода: 2 еды (1 для Космонавта/Следопыта). Награда: +2 очка. Только на траве.</div>
+            <div class="desc">Труднопроходимая местность. Стоимость хода: 2 еды (1 для Эльфа/Демона). Награда: +2 очка. Только на траве.</div>
           </div>
           <div class="encItem">
             <div class="icon">🌵</div>
             <div class="name">Кактус</div>
-            <div class="desc">Труднопроходимая местность пустыни. Стоимость хода: 2 еды (1 для Космонавта/Следопыта). Награда: +2 очка. Только в пустыне.</div>
+            <div class="desc">Труднопроходимая местность пустыни. Стоимость хода: 2 еды (1 для Эльфа/Демона). Награда: +2 очка. Только в пустыне.</div>
           </div>
           <div class="encItem">
             <div class="icon">⛰️</div>
             <div class="name">Гора</div>
-            <div class="desc">Очень труднопроходимая местность. Стоимость хода: 3 еды (1 для Космонавта/Следопыта). Награда: +3 очка. Только на траве.</div>
+            <div class="desc">Очень труднопроходимая местность. Стоимость хода: 3 еды (1 для Эльфа/Демона). Награда: +3 очка. Только на траве.</div>
           </div>
           <div class="encItem">
             <div class="icon">🪙</div>
@@ -420,6 +650,16 @@
             <div class="name">Портал</div>
             <div class="desc">ОЧЕНЬ РЕДКИЙ! Телепортирует вас на случайное место в радиусе ±500 клеток от текущей позиции (минимум 100 клеток). Награда: +10 очков. Одноразовое использование.</div>
           </div>
+          <div class="encItem">
+            <div class="icon">⛵</div>
+            <div class="name">Корабль</div>
+            <div class="desc">РЕДКИЙ! Позволяет плавать по воде. При клике: садитесь в корабль. В корабле: можете ходить только по воде за 2 еды и +3 очка. При клике на сушу: выходите из корабля. (Русалка может плавать без корабля)</div>
+          </div>
+          <div class="encItem">
+            <div class="icon">🍾</div>
+            <div class="name">Бутылка с письмом</div>
+            <div class="desc">РЕДКИЙ! Появляется на воде. Можно подобрать только в корабле. Содержит случайное забавное сообщение. Награда: +10 очков.</div>
+          </div>
         </div>
       </div>
 
@@ -429,7 +669,7 @@
           <div class="encItem">
             <div class="icon">🐺</div>
             <div class="name">Волк</div>
-            <div class="desc">С мечом: -1 меч, +4 еды, +4 очка. Без меча: -1 здоровье. Встречается на траве и песке, НЕ спавнится на снегу и в пустыне. Одноразовое использование.</div>
+            <div class="desc">С мечом: -1 меч, +2 еды, +4 очка. Без меча: -1 здоровье. Встречается на траве и песке, НЕ спавнится на снегу и в пустыне. Одноразовое использование.</div>
           </div>
           <div class="encItem">
             <div class="icon">🐅</div>
@@ -439,16 +679,94 @@
           <div class="encItem">
             <div class="icon">💀</div>
             <div class="name">Череп</div>
-            <div class="desc">С мечом: -2 меча, +6 еды, +10 очков. Без мечей: -1 здоровье. Часто встречается на снегу, очень редко на траве/песке. Одноразовое использование.</div>
+            <div class="desc">С мечом: -2 меча, +6 еды, +10 очков. С булавой: -1 меч, +6 еды, +10 очков. Без оружия: -1 здоровье. Часто встречается на снегу, очень редко на траве/песке. Одноразовое использование.</div>
           </div>
           <div class="encItem">
             <div class="icon">🐉</div>
             <div class="name">Дракон</div>
-            <div class="desc">ЛЕГЕНДАРНЫЙ БОСС! Требуется 15 мечей для победы: -15 мечей, +35 очков. Без 15 мечей: мгновенная смерть! Крайне редко встречается в снежном биоме.</div>
+            <div class="desc">ЛЕГЕНДАРНЫЙ БОСС! Требуется 20 мечей для победы: -20 мечей, +35 очков. Без 20 мечей: мгновенная смерть! Крайне редко встречается в снежном биоме.</div>
+          </div>
+          <div class="encItem">
+            <div class="icon">🦈</div>
+            <div class="name">Акула</div>
+            <div class="desc">ВОДНЫЙ ВРАГ! Доступен только в корабле. С мечами: -5 мечей, +4 еды, +10 очков. Без мечей: -2 здоровья. Встречается в водах океана. Одноразовое использование.</div>
+          </div>
+          <div class="encItem">
+            <div class="icon">🐙</div>
+            <div class="name">Осьминог</div>
+            <div class="desc">МОРСКОЙ БОСС! Доступен только в корабле. Требуется 30 мечей для победы: -30 мечей, +100 очков. Без 30 мечей: мгновенная смерть! ОЧЕНЬ редко встречается в океане.</div>
           </div>
         </div>
       </div>
       
+      <div class="section">
+        <h2>👥 Персонажи</h2>
+        <div class="encItems">
+          <div class="encItem">
+            <div class="icon">🧙‍♂️</div>
+            <div class="name">Маг</div>
+            <div class="desc">Базовый персонаж без особых способностей. Бесплатно.</div>
+          </div>
+          <div class="encItem">
+            <div class="icon">🧝‍♂️</div>
+            <div class="name">Эльф</div>
+            <div class="desc">Проходит леса и горы за 1 еду (как обычную траву). Стоимость: 100 монет.</div>
+          </div>
+          <div class="encItem">
+            <div class="icon">👨‍🌾</div>
+            <div class="name">Фермер</div>
+            <div class="desc">20% шанс не потерять еду при ходе. Стоимость: 400 монет.</div>
+          </div>
+          <div class="encItem">
+            <div class="icon">🧛‍♂️</div>
+            <div class="name">Вампир</div>
+            <div class="desc">Восстанавливает +2 еды за каждого убитого врага. Стоимость: 600 монет.</div>
+          </div>
+          <div class="encItem">
+            <div class="icon">🤖</div>
+            <div class="name">Робот</div>
+            <div class="desc">Оружие считается за еду при недостатке еды. Стоимость: 800 монет.</div>
+          </div>
+          <div class="encItem">
+            <div class="icon">🕵️‍♂️</div>
+            <div class="name">Следопыт</div>
+            <div class="desc">Видит дальше на 1 ряд и может перемещаться на 2 клетки за ход. Стоимость: 1000 монет.</div>
+          </div>
+          <div class="encItem">
+            <div class="icon">🐦‍🔥</div>
+            <div class="name">Феникс</div>
+            <div class="desc">Возрождается 1 раз после смерти с 1 HP и 10 еды. Стоимость: 1500 монет.</div>
+          </div>
+          <div class="encItem">
+            <div class="icon">🧜‍♀️</div>
+            <div class="name">Русалка</div>
+            <div class="desc">Может ходить по воде без корабля и не получает штрафы от воды. Стоимость: 1500 монет.</div>
+          </div>
+          <div class="encItem">
+            <div class="icon">🎒</div>
+            <div class="name">Собиратель</div>
+            <div class="desc">Имеет дополнительный слот инвентаря. Стоимость: 1500 монет.</div>
+          </div>
+          <div class="encItem">
+            <div class="icon">🐻</div>
+            <div class="name">Мишка</div>
+            <div class="desc">Медведь, который спавнится в зимнем биоме и не получает штрафы от снега. Стоимость: 3000 монет.</div>
+          </div>
+          <div class="encItem">
+            <div class="icon">🗡️</div>
+            <div class="name">Драконоубийца</div>
+            <div class="desc">Убивает драконов за 1 меч, но получает в 2 раза меньше очков за драконов. Стоимость: 5000 монет.</div>
+          </div>
+          <div class="encItem">
+            <div class="icon">⚡</div>
+            <div class="name">Берсеркер</div>
+            <div class="desc">Начинает с 1 HP и 1 едой, но получает +20 мечей в начале игры. Стоимость: 5000 монет.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="fixedButtons">
       <button class="backBtn" id="encyclopediaBack">◀️ Назад</button>
     </div>
   </div>
@@ -470,8 +788,15 @@
 
   <div id="scoreBox">
     <div class="card">Очки: <b id="score">0</b></div>
-    <div class="card">Рекорд: <b id="best">0</b></div>
+    <div class="card">🏆 Рекорд: <b id="best">0</b> <span id="bestIcon" style="margin-left:4px"></span></div>
     <div class="card">🪙 Монеты: <b id="coinsDisplay">0</b></div>
+  </div>
+
+  <!-- Инвентарь -->
+  <div id="inventory">
+    <div class="inventorySlots" id="inventorySlots">
+      <!-- Слоты будут созданы динамически -->
+    </div>
   </div>
 
   <!-- Quest Display -->
@@ -511,8 +836,9 @@
     <button id="cheatHp" style="padding:6px 10px;font-size:12px;background:#4ade80;border:none;border-radius:6px;cursor:pointer;font-weight:600">+1 ❤️</button>
     <button id="cheatSword" style="padding:6px 10px;font-size:12px;background:#667eea;border:none;border-radius:6px;cursor:pointer;font-weight:600">+3 ⚔️</button>
     <button id="cheatFood" style="padding:6px 10px;font-size:12px;background:#f59e0b;border:none;border-radius:6px;cursor:pointer;font-weight:600">+10 🍗</button>
-    <button id="cheatCoins" style="padding:6px 10px;font-size:12px;background:#ffd700;border:none;border-radius:6px;cursor:pointer;font-weight:600">+10 🪙</button>
-    <button id="cheatScore" style="padding:6px 10px;font-size:12px;background:#a855f7;border:none;border-radius:6px;cursor:pointer;font-weight:600">+20 🎯</button>
+    <button id="cheatCoins" style="padding:6px 10px;font-size:12px;background:#ffd700;border:none;border-radius:6px;cursor:pointer;font-weight:600">+100 🪙</button>
+    <button id="cheatCoins1000" style="padding:6px 10px;font-size:12px;background:#ffd700;border:none;border-radius:6px;cursor:pointer;font-weight:600">+1000 🪙</button>
+    <button id="cheatScore" style="padding:6px 10px;font-size:12px;background:#a855f7;border:none;border-radius:6px;cursor:pointer;font-weight:600">+100 🎯</button>
   </div>
 
   <div id="over">
@@ -568,8 +894,28 @@
     <div class="panel">
       <div class="dragonIcon">🐉</div>
       <h2>ДРАКОН ИСТРЕБИЛ ВАС</h2>
-      <p class="message">Вы были слишком слабы, чтобы противостоять могучему дракону.<br>Вам нужно было минимум <b>15 мечей</b> для победы!</p>
+      <p class="message">Вы были слишком слабы, чтобы противостоять могучему дракону.<br>Вам нужно было минимум <b id="dragonRequiredSwords">20 мечей</b> для победы!</p>
       <button id="dragonDeathBtn">Принять поражение</button>
+    </div>
+  </div>
+
+  <!-- Octopus Death Dialog -->
+  <div id="octopusDeathDialog">
+    <div class="panel">
+      <div class="octopusIcon">🐙</div>
+      <h2>ОСЬМИНОГ ЗАТОПИЛ ВАШ КОРАБЛЬ</h2>
+      <p class="message">Морской гигант оказался слишком силён!<br>Вам нужно было минимум <b>30 мечей</b> для победы!</p>
+      <button id="octopusDeathBtn">Принять поражение</button>
+    </div>
+  </div>
+
+  <!-- Octopus Victory Dialog -->
+  <div id="octopusVictoryDialog">
+    <div class="panel">
+      <div class="octopusIcon">🐙</div>
+      <h2>ЛЕГЕНДАРНАЯ ПОБЕДА!</h2>
+      <p class="message">Вы победили морского гиганта!<br>Осьминог повержен, а вы - легенда!</p>
+      <button id="octopusVictoryBtn">Продолжить приключение</button>
     </div>
   </div>
 
@@ -584,28 +930,45 @@
     </div>
   </div>
 
-  <!-- краткая легенда -->
-  <div id="legend">
-    <b>📜 Правила игры:</b><br>
-    <b>Клетки:</b> Трава +1 • Песок +1 (10% 💎5-20🪙, 10% -1🍗) • 🏜️Пустыня +2 • ❄️Снег +3 (-2🍗)<br>
-    <b>Каждый ход:</b> -1 еда (🌲Лес/🌵Кактус -2, ⛰️Гора -3) • Без еды -1❤️<br>
-    <b>Объекты:</b> 🏠 +4🍗 +1🎯 • 🏰 +1⚔️ +1🎯 • 🪙 +1🎯 монета • 🎁 РЕДКО! 5-20🪙<br>
-    <b>Враги:</b> 🐺 Волк -1⚔️ +4🍗 +4🎯 • 🐅 Тигр -2⚔️ +5🍗 +7🎯 (-2❤️!)<br>
-    💀 Череп -2⚔️ +6🍗 +10🎯 • 🐉 Дракон -15⚔️ +35🎯 (или смерть!)<br>
-    ❓ Событие • 🗼 Маяк • 🌀 Портал +10🎯 телепорт<br>
-    <b>Цель:</b> Набрать максимум очков на карте 4000×4000!
+  <!-- Phoenix Revival Dialog -->
+  <div id="phoenixDialog">
+    <div class="panel">
+      <div class="phoenixIcon">🔥</div>
+      <h2>ФЕНИКС ВОЗРОДИЛСЯ!</h2>
+      <p class="message">Из пепла смерти<br>восстает легендарный Феникс!</p>
+      <div class="revivalStats">
+        <div class="stat">+1 ❤️ Здоровье</div>
+        <div class="stat">+10 🍗 Еда</div>
+      </div>
+      <button id="phoenixBtn">Продолжить игру</button>
+    </div>
   </div>
+
+  <!-- Bottle Message Dialog -->
+  <div id="bottleDialog">
+    <div class="panel">
+      <div class="bottleIcon">🍾</div>
+      <h2>ПОСЛАНИЕ В БУТЫЛКЕ</h2>
+      <div class="messageText" id="bottleMessage">Текст послания...</div>
+      <div class="score">🎯 +10 очков</div>
+      <button id="bottleBtn">Продолжить приключение</button>
+    </div>
+  </div>
+
 </div>
 
 <!-- Damage Effect Overlay -->
 <div id="damageEffect"></div>
+
+<!-- Heal Effect Overlay -->
+<div id="healEffect"></div>
 
 <script>
 /* ==========
    Простые константы
    ========== */
 const TILE = { GRASS:'grass', SAND:'sand', WATER:'water', SNOW:'snow', DESERT:'desert', FOG:'fog' };
-const OBJ  = { NONE:'none', FOREST:'forest', CACTUS:'cactus', ROCK:'rock', HOME:'home', CASTLE:'castle', MONSTER:'monster', TIGER:'tiger', SKULL:'skull', DRAGON:'dragon', COIN:'coin', CHEST:'chest', EVENT:'event', BEACON:'beacon', PORTAL:'portal' };
+const OBJ  = { NONE:'none', FOREST:'forest', CACTUS:'cactus', ROCK:'rock', HOME:'home', CASTLE:'castle', MONSTER:'monster', TIGER:'tiger', SKULL:'skull', DRAGON:'dragon', COIN:'coin', CHEST:'chest', EVENT:'event', BEACON:'beacon', PORTAL:'portal', SHIP:'ship', BOTTLE:'bottle', SHARK:'shark', OCTOPUS:'octopus' };
 
 const COLORS = {
   grass:getCss('--grass'),
@@ -621,14 +984,96 @@ const COLORS = {
 const BASE_HP = 6;
 const MAP_SIZE = 4000; // Фиксированный размер карты (увеличено до 4000)
 
-// Функция для получения максимального HP с учетом улучшений
+// Функция для получения максимального HP с учетом улучшений и брони
 function getMaxHP(){
-  return BASE_HP + (state.upgrades.includes('maxHp') ? 1 : 0);
+  const ability = getCharacterAbility();
+  
+  // Берсеркер всегда имеет 1 HP
+  if(ability === 'berserker'){
+    return 1;
+  }
+  
+  const maxHpLevel = state.upgrades.filter(u => u.startsWith('maxHp_')).length;
+  let bonusHp = 0;
+  
+  // Проверяем экипированную броню
+  if(state.equippedArmor === 'ironArmor'){
+    bonusHp += 1;
+  }
+  
+  return BASE_HP + maxHpLevel + bonusHp;
 }
 
 // Функция для получения начальной еды с учетом улучшений
 function getStartFood(){
-  return 10 + (state.upgrades.includes('startFood') ? 5 : 0);
+  const ability = getCharacterAbility();
+  
+  // Берсеркер всегда начинает с 1 еды
+  if(ability === 'berserker'){
+    return 1;
+  }
+  
+  const startFoodLevel = state.upgrades.filter(u => u.startsWith('startFood_')).length;
+  return 10 + startFoodLevel;
+}
+
+// Функция для получения начального количества мечей с учетом улучшений и оружия
+function getStartSword(){
+  const ability = getCharacterAbility();
+  
+  // Берсеркер получает +20 мечей
+  if(ability === 'berserker'){
+    const startSwordLevel = state.upgrades.filter(u => u.startsWith('startSword_')).length;
+    let bonusSwords = 0;
+    
+    // Проверяем экипированное оружие
+    if(state.equippedWeapon === 'sword'){
+      bonusSwords += 5;
+    }
+    
+    return 2 + startSwordLevel + bonusSwords + 20; // +20 мечей для берсеркера
+  }
+  
+  const startSwordLevel = state.upgrades.filter(u => u.startsWith('startSword_')).length;
+  let bonusSwords = 0;
+  
+  // Проверяем экипированное оружие
+  if(state.equippedWeapon === 'sword'){
+    bonusSwords += 5;
+  }
+  
+  return 2 + startSwordLevel + bonusSwords;
+}
+
+// Функция для получения начального количества слотов инвентаря с учетом улучшений и способности персонажа
+function getStartInventorySlots(){
+  const inventorySlotsLevel = state.upgrades.filter(u => u.startsWith('inventorySlots_')).length;
+  let bonusSlots = 0;
+  
+  // Проверяем способность персонажа Собиратель
+  if(getCharacterAbility() === 'collector'){
+    bonusSlots += 1;
+  }
+  
+  return 1 + inventorySlotsLevel + bonusSlots;
+}
+
+// Функция для получения уровня улучшения
+function getUpgradeLevel(upgradeId){
+  return state.upgrades.filter(u => u.startsWith(upgradeId + '_')).length;
+}
+
+// Функция для получения цены улучшения с учетом уровня
+function getUpgradePrice(upgradeId, basePrice){
+  const currentLevel = getUpgradeLevel(upgradeId);
+  
+  // Специальная цена для радиуса обзора: 300 -> 6000
+  if(upgradeId === 'visionRange'){
+    if(currentLevel === 0) return 300;
+    if(currentLevel === 1) return 6000;
+  }
+  
+  return basePrice * Math.pow(2, currentLevel);
 }
 
 /* ==========
@@ -652,6 +1097,10 @@ const iconEmojis = {
   'event': '❓',
   'beacon': '🗼',
   'portal': '🌀',
+  'ship': '⛵',
+  'bottle': '🍾',
+  'shark': '🦈',
+  'octopus': '🐙',
   // Ресурсы
   'heart': '❤️',
   'food': '🍗',
@@ -659,16 +1108,22 @@ const iconEmojis = {
   'score': '🎯',
   'coins_hud': '🪙',
   // Персонажи
-  'player_mage': '🧙',
-  'player_astronaut': '🧑‍🚀',
-  'player_superman': '🦸',
-  'player_vampire': '🧛',
+  'player_mage': '🧙‍♂️',
+  'player_astronaut': '🧝‍♂️',
+  'player_superman': '👨‍🌾',
+  'player_vampire': '🧛‍♂️',
   'player_robot': '🤖',
-  'player_alien': '👽',
+  'player_alien': '🕵️‍♂️',
+  'player_phoenix': '🐦‍🔥',
+  'player_mermaid': '🧜‍♀️',
+  'player_collector': '🎒',
+  'player_bear': '🐻',
+  'player_dragonslayer': '🗡️',
+  'player_berserker': '⚡',
   // Секретные персонажи
   'player_seer': '🔮',
   'player_warrior': '⚔️',
-  'player_ranger': '🦅',
+  'player_demon': '👹',
   // Текстуры земли
   'tile_grass': null,
   'tile_sand': null,
@@ -768,7 +1223,7 @@ async function preloadSounds(){
 
 // Настройки звука (из localStorage)
 let soundEnabled = localStorage.getItem('hex-sound-enabled') !== 'false'; // по умолчанию включено
-let musicEnabled = localStorage.getItem('hex-music-enabled') !== 'false'; // по умолчанию включено
+let musicEnabled = localStorage.getItem('hex-music-enabled') === 'true'; // по умолчанию выключено
 
 // Функция воспроизведения звука
 function playSound(soundName){
@@ -841,12 +1296,12 @@ function updateSoundButtons(){
   const musicBtns = document.querySelectorAll('.musicToggle');
   
   soundBtns.forEach(btn => {
-    btn.textContent = soundEnabled ? '🔊 Звуки: ВКЛ' : '🔇 Звуки: ВЫКЛ';
+    btn.textContent = soundEnabled ? '🔊' : '🔇';
     btn.style.opacity = soundEnabled ? '1' : '0.6';
   });
   
   musicBtns.forEach(btn => {
-    btn.textContent = musicEnabled ? '🎵 Музыка: ВКЛ' : '🎵 Музыка: ВЫКЛ';
+    btn.textContent = musicEnabled ? '🎵' : '🔇';
     btn.style.opacity = musicEnabled ? '1' : '0.6';
   });
 }
@@ -1198,6 +1653,30 @@ const ACHIEVEMENTS = [
     description: 'Убить дракона',
     reward: 50,
     check: () => state.dragonsKilled >= 1
+  },
+  {
+    id: 'octopus',
+    icon: '🐙',
+    name: 'Покоритель глубин',
+    description: 'Убить морского гиганта - осьминога',
+    reward: 100,
+    check: () => state.octopusesKilled >= 1
+  },
+  {
+    id: 'waterDiscovery',
+    icon: '🌊',
+    name: 'Мореплаватель',
+    description: 'Обнаружить водный биом (сесть в корабль)',
+    reward: 20,
+    check: () => state.waterDiscovered === true
+  },
+  {
+    id: 'bottles10',
+    icon: '🍾',
+    name: 'Коллекционер посланий',
+    description: 'Собрать 10 бутылок с письмами',
+    reward: 20,
+    check: () => state.bottlesCollected >= 10
   }
 ];
 
@@ -1209,6 +1688,7 @@ const state = {
   player: {q:2000,r:2000}, // стартуем в центре карты (обновлено для карты 4000x4000)
   score: 0,
   best: Number(localStorage.getItem('hex-best')||0),
+  bestIcon: localStorage.getItem('hex-best-icon')||'',
   coins: Number(localStorage.getItem('hex-coins')||0), // монеты
   coinsInGame: 0,      // монеты собранные в текущей игре
   hp: BASE_HP,
@@ -1217,8 +1697,12 @@ const state = {
   over: false,
   monstersKilled: 0,   // убито монстров в текущей игре
   dragonsKilled: 0,    // убито драконов в текущей игре
+  octopusesKilled: 0,  // убито осьминогов в текущей игре
+  bottlesCollected: 0, // собрано бутылок с письмами за текущую игру
   snowDiscovered: false, // обнаружен ли снежный биом
   desertDiscovered: false, // обнаружен ли биом пустыни
+  phoenixRevived: false, // использовано ли возрождение Феникса
+  waterDiscovered: false, // обнаружен ли водный биом (сел в корабль)
   deathReason: '',     // причина смерти (последнее действие)
   seed: 0,              // seed для генерации карты
   // Система заданий
@@ -1231,9 +1715,14 @@ const state = {
   mountainsVisited: 0,  // посещено гор
   hoverTile: null,      // клетка под курсором для hover эффекта
   isDragging: false,    // перетаскивание камеры правой кнопкой
+  // Состояние корабля
+  inShip: false,        // находится ли игрок в корабле
+  shipPosition: null,   // позиция корабля {q, r}
+  shipOrigin: null,     // начальная позиция корабля {q, r}
+  pendingBottleMessage: null, // сообщение из бутылки для показа после хода
   dragStart: {x:0,y:0}, // начальная позиция перетаскивания
-  playerIcon: localStorage.getItem('hex-player-icon')||'🧙', // иконка игрока
-  ownedIcons: JSON.parse(localStorage.getItem('hex-owned-icons')||'["🧙"]'), // купленные иконки
+  playerIcon: localStorage.getItem('hex-player-icon')||'🧙‍♂️', // иконка игрока
+  ownedIcons: JSON.parse(localStorage.getItem('hex-owned-icons')||'["🧙‍♂️"]'), // купленные иконки
   currentScreen: 'menu', // текущий экран: 'menu', 'game', 'shop', 'leaderboard', 'achievements'
   previousScreen: 'menu', // предыдущий экран (для возврата)
   playerName: localStorage.getItem('hex-player-name')||'', // имя игрока
@@ -1242,6 +1731,16 @@ const state = {
   achievements: JSON.parse(localStorage.getItem('hex-achievements')||'[]'), // разблокированные достижения
   unlockedSecrets: JSON.parse(localStorage.getItem('hex-unlocked-secrets')||'[]'), // разблокированные секретные персонажи
   upgrades: JSON.parse(localStorage.getItem('hex-upgrades')||'[]'), // купленные улучшения
+  // Система инвентаря
+  inventory: JSON.parse(localStorage.getItem('hex-inventory')||'[]'), // предметы в инвентаре
+  equippedArmor: localStorage.getItem('hex-equipped-armor')||null, // экипированная броня
+  equippedWeapon: localStorage.getItem('hex-equipped-weapon')||null, // экипированное оружие
+  inventorySlots: 0, // будет обновлено в initGame()
+  swordUsed: false, // был ли использован меч в текущей игре
+  ownedArmor: JSON.parse(localStorage.getItem('hex-owned-armor')||'[]'), // купленная броня
+  ownedWeapons: JSON.parse(localStorage.getItem('hex-owned-weapons')||'[]'), // купленное оружие
+  holyHelmetUsed: false, // был ли использован шлем святого в текущей игре
+  hunterMarkActive: false, // активна ли метка охотника
   devMode: false, // режим разработчика
   // Анимация перемещения игрока
   playerAnimation: {
@@ -1388,7 +1887,7 @@ function getTile(q,r){
   // Используем noise для кластеров воды
   const waterNoise = clusterNoise(q, r, state.seed, 15);
   
-  if(waterNoise < 0.25){
+  if(waterNoise < 0.35){
     tile.base = TILE.WATER;
   }else{
     tile.base = TILE.GRASS;
@@ -1546,6 +2045,41 @@ function ensureAreaGenerated(q,r){
       }
     }
   }
+  
+  // Генерация корабля на воде возле песка
+  if(tile.base === TILE.WATER && tile.obj === OBJ.NONE && !tile.oneShotDone){
+    const nearSand = neighbors(q,r).some(n=>{
+      if(!inBounds(n.q,n.r)) return false;
+      const nt = getTile(n.q,n.r);
+      return nt && nt.base === TILE.SAND;
+    });
+    
+    if(nearSand){
+      const shipSeed = state.seed + q*777 + r*333;
+      if(seededRandom(shipSeed) < 0.005){ // 0.5% шанс появления корабля
+        tile.obj = OBJ.SHIP;
+      }
+    }
+  }
+  
+  // Генерация водных объектов
+  if(tile.base === TILE.WATER && tile.obj === OBJ.NONE){
+    const waterSeed = state.seed + q*999 + r*111;
+    const rand = seededRandom(waterSeed);
+    
+    // Бутылка с письмом - редкий объект (1% шанс)
+    if(rand < 0.01){
+      tile.obj = OBJ.BOTTLE;
+    }
+    // Акула - монстр на воде (0.8% шанс)
+    else if(rand < 0.018){
+      tile.obj = OBJ.SHARK;
+    }
+    // Осьминог - редкий босс (0.1% шанс)
+    else if(rand < 0.019){
+      tile.obj = OBJ.OCTOPUS;
+    }
+  }
 }
 
 /* ==========
@@ -1631,7 +2165,7 @@ function draw(){
         // Если клетка открыта, но не посещена - рисуем с затемнением
         if(tile.revealed && !tile.visited){
           ctx.save();
-          ctx.globalAlpha = 0.6;
+          ctx.globalAlpha = 0.8;
           textureDrawn = drawHexTexture(x, y, state.size+1, textureName);
           ctx.restore();
         } else {
@@ -1644,7 +2178,7 @@ function draw(){
         // Если клетка открыта, но не посещена - делаем бледнее
         if(tile.revealed && !tile.visited){
           ctx.save();
-          ctx.globalAlpha = 0.6;
+          ctx.globalAlpha = 0.8;
           drawHex(x,y,state.size+1, fill, null, 0);
           drawHex(x,y,state.size+1, null, 'rgba(0,0,0,0.3)', 1);
           ctx.restore();
@@ -1659,7 +2193,7 @@ function draw(){
         
         // Если клетка не посещена, добавляем полупрозрачное затемнение поверх
         if(tile.revealed && !tile.visited){
-          drawHex(x,y,state.size+1, 'rgba(58,58,58,0.5)', null, 0);
+          drawHex(x,y,state.size+1, 'rgba(100,100,100,0.3)', null, 0);
         }
       }
       
@@ -1668,10 +2202,22 @@ function draw(){
         drawHex(x,y,state.size+1, 'rgba(255,255,255,0.15)', 'rgba(255,255,255,0.5)', 3);
       }
       
-      // объект (если открыт)
-      if(tile.revealed){
+      // объект (если открыт и объект не исчез)
+      if(tile.revealed && tile.obj !== OBJ.NONE){
+        // Отладочная информация
+        if(tile.obj === OBJ.COIN && tile.oneShotDone){
+          console.log('ВНИМАНИЕ: Рендерим монету с oneShotDone=true!', tile);
+          console.log('Координаты рендеринга:', q, r);
+          // Проверяем объект в state.tiles
+          const key = `${q},${r}`;
+          const stateTile = state.tiles.get(key);
+          console.log('Объект в state.tiles:', stateTile);
+        }
         ctx.font = Math.floor(state.size*0.85)+"px system-ui";
         ctx.textAlign='center'; ctx.textBaseline='middle';
+        
+        // Рисуем объекты (размер зависит от режима текстур)
+        const objSize = state.useTextures ? state.size * 2 : state.size * 0.85;
         
         // Если объект уже посещен (или монстр побежден, или one-shot использован), делаем бледнее
         const isUsed = tile.oneShotDone || tile.monsterDefeated || tile.tigerDefeated || tile.skullDefeated || tile.dragonDefeated || (tile.scored && (tile.obj === OBJ.FOREST || tile.obj === OBJ.CACTUS || tile.obj === OBJ.ROCK));
@@ -1681,30 +2227,119 @@ function draw(){
           ctx.globalAlpha = 0.4;
         }
         
-        // Рисуем объекты (размер зависит от режима текстур)
-        const objSize = state.useTextures ? state.size * 2 : state.size * 0.85;
         switch(tile.obj){
           case OBJ.FOREST: drawIcon('forest', x, y, objSize); break;
           case OBJ.CACTUS: drawIcon('cactus', x, y, objSize); break;
           case OBJ.ROCK:   drawIcon('rock', x, y, objSize); break;
           case OBJ.HOME:   drawIcon('home', x, y, objSize); break;
           case OBJ.CASTLE: drawIcon('castle', x, y, objSize); break;
-          case OBJ.MONSTER: drawIcon('monster', x, y, objSize); break;
-          case OBJ.TIGER: drawIcon('tiger', x, y, objSize); break;
-          case OBJ.SKULL: drawIcon('skull', x, y, objSize); break;
-          case OBJ.DRAGON: drawIcon('dragon', x, y, objSize); break;
-          case OBJ.COIN: drawIcon('coin', x, y, objSize); break;
-          case OBJ.CHEST: drawIcon('chest', x, y, objSize); break;
-          case OBJ.EVENT: drawIcon('event', x, y, objSize); break;
-          case OBJ.BEACON: drawIcon('beacon', x, y, objSize); break;
-          case OBJ.PORTAL: drawIcon('portal', x, y, objSize); break;
+          case OBJ.MONSTER: 
+            if(tile.monsterDefeated){
+              console.log('ОШИБКА: Рендерим волка с monsterDefeated=true в switch!', tile);
+              // НЕ рендерим волка, если он уже побежден
+              break;
+            }
+            drawIcon('monster', x, y, objSize); 
+            break;
+          case OBJ.TIGER: 
+            if(tile.tigerDefeated){
+              console.log('ОШИБКА: Рендерим тигра с tigerDefeated=true в switch!', tile);
+              // НЕ рендерим тигра, если он уже побежден
+              break;
+            }
+            drawIcon('tiger', x, y, objSize); 
+            break;
+          case OBJ.SKULL: 
+            if(tile.skullDefeated){
+              console.log('ОШИБКА: Рендерим череп с skullDefeated=true в switch!', tile);
+              // НЕ рендерим череп, если он уже побежден
+              break;
+            }
+            drawIcon('skull', x, y, objSize); 
+            break;
+          case OBJ.DRAGON: 
+            if(tile.dragonDefeated){
+              console.log('ОШИБКА: Рендерим дракона с dragonDefeated=true в switch!', tile);
+              // НЕ рендерим дракона, если он уже побежден
+              break;
+            }
+            drawIcon('dragon', x, y, objSize); 
+            break;
+          case OBJ.COIN: 
+            if(tile.oneShotDone){
+              console.log('ОШИБКА: Рендерим монету с oneShotDone=true в switch!', tile);
+              // НЕ рендерим монету, если она уже подобрана
+              break;
+            }
+            drawIcon('coin', x, y, objSize); 
+            break;
+          case OBJ.CHEST: 
+            if(tile.oneShotDone){
+              console.log('ОШИБКА: Рендерим сундук с oneShotDone=true в switch!', tile);
+              // НЕ рендерим сундук, если он уже открыт
+              break;
+            }
+            drawIcon('chest', x, y, objSize); 
+            break;
+          case OBJ.EVENT: 
+            if(tile.oneShotDone){
+              console.log('ОШИБКА: Рендерим событие с oneShotDone=true в switch!', tile);
+              // НЕ рендерим событие, если оно уже использовано
+              break;
+            }
+            drawIcon('event', x, y, objSize); 
+            break;
+          case OBJ.BEACON: 
+            if(tile.oneShotDone){
+              console.log('ОШИБКА: Рендерим маяк с oneShotDone=true в switch!', tile);
+              // НЕ рендерим маяк, если он уже использован
+              break;
+            }
+            drawIcon('beacon', x, y, objSize); 
+            break;
+          case OBJ.PORTAL: 
+            if(tile.oneShotDone){
+              console.log('ОШИБКА: Рендерим портал с oneShotDone=true в switch!', tile);
+              // НЕ рендерим портал, если он уже использован
+              break;
+            }
+            drawIcon('portal', x, y, objSize); 
+            break;
+          case OBJ.SHIP: 
+            // Корабль удаляется с карты при посадке, так что рисуем только свободные корабли
+            drawIcon('ship', x, y, objSize);
+            break;
+          case OBJ.BOTTLE: 
+            if(tile.oneShotDone){
+              console.log('ОШИБКА: Рендерим бутылку с oneShotDone=true в switch!', tile);
+              // НЕ рендерим бутылку, если она уже прочитана
+              break;
+            }
+            drawIcon('bottle', x, y, objSize); 
+            break;
+          case OBJ.SHARK: 
+            if(tile.oneShotDone){
+              console.log('ОШИБКА: Рендерим акулу с oneShotDone=true в switch!', tile);
+              // НЕ рендерим акулу, если она уже побеждена
+              break;
+            }
+            drawIcon('shark', x, y, objSize); 
+            break;
+          case OBJ.OCTOPUS: 
+            if(tile.oneShotDone){
+              console.log('ОШИБКА: Рендерим осьминога с oneShotDone=true в switch!', tile);
+              // НЕ рендерим осьминога, если он уже побежден
+              break;
+            }
+            drawIcon('octopus', x, y, objSize); 
+            break;
         }
         
         if(isUsed){
           ctx.restore();
         }
-      } else if(getCharacterAbility() === 'seer' && (tile.obj === OBJ.COIN || tile.obj === OBJ.CHEST)){
-        // Провидец видит монетки и сундуки сквозь туман войны
+      } else if(getCharacterAbility() === 'seer' && tile.obj !== OBJ.NONE && (tile.obj === OBJ.COIN || tile.obj === OBJ.CHEST)){
+        // Провидец видит монетки и сундуки сквозь туман войны (только если они не исчезли)
         ctx.save();
         ctx.globalAlpha = 0.5;
         const objSize = state.useTextures ? state.size * 2 : state.size * 0.85;
@@ -1714,6 +2349,29 @@ function draw(){
           drawIcon('chest', x, y, objSize);
         }
         ctx.restore();
+      } else if(state.hunterMarkActive && tile.obj !== OBJ.NONE && (tile.obj === OBJ.MONSTER || tile.obj === OBJ.TIGER || tile.obj === OBJ.SKULL || tile.obj === OBJ.DRAGON)){
+        // Метка охотника показывает всех монстров в радиусе 15 блоков сквозь туман войны
+        const distance = Math.max(Math.abs(q - state.player.q), Math.abs(r - state.player.r), Math.abs((q - state.player.q) + (r - state.player.r)));
+        if(distance <= 15){
+          ctx.save();
+          ctx.globalAlpha = 0.6;
+          const objSize = state.useTextures ? state.size * 2 : state.size * 0.85;
+          switch(tile.obj){
+            case OBJ.MONSTER: 
+              if(!tile.monsterDefeated) drawIcon('monster', x, y, objSize); 
+              break;
+            case OBJ.TIGER: 
+              if(!tile.tigerDefeated) drawIcon('tiger', x, y, objSize); 
+              break;
+            case OBJ.SKULL: 
+              if(!tile.skullDefeated) drawIcon('skull', x, y, objSize); 
+              break;
+            case OBJ.DRAGON: 
+              if(!tile.dragonDefeated) drawIcon('dragon', x, y, objSize); 
+              break;
+          }
+          ctx.restore();
+        }
       }
     }
   }
@@ -1738,7 +2396,8 @@ function draw(){
         if(!nt) return;
         
         // Добавляем в валидные ходы если это не вода (открытая или туман)
-        if(!nt.revealed || nt.base !== TILE.WATER){
+        // Русалка может ходить по воде
+        if(!nt.revealed || nt.base !== TILE.WATER || state.playerIcon === '🧜‍♀️'){
           validMoves.add(`${n.q},${n.r}`);
         }
       });
@@ -1765,18 +2424,34 @@ function draw(){
   ctx.save();
   // Определяем имя иконки игрока
   let playerIconName = 'player_mage';
-  if(state.playerIcon === '🧑‍🚀') playerIconName = 'player_astronaut';
-  else if(state.playerIcon === '🦸') playerIconName = 'player_superman';
-  else if(state.playerIcon === '🧛') playerIconName = 'player_vampire';
+  if(state.playerIcon === '🧝‍♂️') playerIconName = 'player_astronaut';
+  else if(state.playerIcon === '👨‍🌾') playerIconName = 'player_superman';
+  else if(state.playerIcon === '🧛‍♂️') playerIconName = 'player_vampire';
   else if(state.playerIcon === '🤖') playerIconName = 'player_robot';
-  else if(state.playerIcon === '👽') playerIconName = 'player_alien';
+  else if(state.playerIcon === '🕵️‍♂️') playerIconName = 'player_alien';
+  else if(state.playerIcon === '🐦‍🔥') playerIconName = 'player_phoenix';
+  else if(state.playerIcon === '🧜‍♀️') playerIconName = 'player_mermaid';
+  else if(state.playerIcon === '🎒') playerIconName = 'player_collector';
+  else if(state.playerIcon === '🐻') playerIconName = 'player_bear';
+  else if(state.playerIcon === '🗡️') playerIconName = 'player_dragonslayer';
+  else if(state.playerIcon === '⚡') playerIconName = 'player_berserker';
   else if(state.playerIcon === '🔮') playerIconName = 'player_seer';
   else if(state.playerIcon === '⚔️') playerIconName = 'player_warrior';
-  else if(state.playerIcon === '🦅') playerIconName = 'player_ranger';
+  else if(state.playerIcon === '👹') playerIconName = 'player_demon';
   
   // Рисуем игрока (размер зависит от режима текстур)
   const playerSize = state.useTextures ? state.size * 2 : state.size * 0.85;
   drawIcon(playerIconName, px, py, playerSize);
+  
+  // Рисуем корабль, если игрок в корабле
+  if(state.inShip && state.shipPosition){
+    const shipPix = axialToPixel(state.shipPosition.q, state.shipPosition.r, state.size);
+    const shipX = shipPix.x + state.camera.x;
+    const shipY = shipPix.y + state.camera.y;
+    const shipSize = state.useTextures ? state.size * 2 : state.size * 0.85;
+    drawIcon('ship', shipX, shipY, shipSize);
+  }
+  
   ctx.restore();
 }
 
@@ -1884,16 +2559,20 @@ function drawPawn(x,y,sz){
    ========== */
 function getCharacterAbility(){
   const icon = state.playerIcon;
-  if(icon === '🧙') return 'none'; // Маг
-  if(icon === '🧑‍🚀') return 'astronaut'; // Космонавт - леса и горы за 1 еду
-  if(icon === '🦸') return 'superman'; // Супермен - 30% шанс не потерять еду
-  if(icon === '🧛') return 'vampire'; // Вампир - +2 еды за убийство монстра
+  if(icon === '🧙‍♂️') return 'none'; // Маг
+  if(icon === '🧝‍♂️') return 'astronaut'; // Эльф - леса и горы за 1 еду
+  if(icon === '👨‍🌾') return 'superman'; // Фермер - 20% шанс не потерять еду
+  if(icon === '🧛‍♂️') return 'vampire'; // Вампир - +2 еды за убийство монстра
   if(icon === '🤖') return 'robot'; // Робот - оружие считается за еду
-  if(icon === '👽') return 'alien'; // Пришелец - видит дальше
+  if(icon === '🕵️‍♂️') return 'alien'; // Следопыт - видит дальше
+  if(icon === '🎒') return 'collector'; // Собиратель - +1 слот инвентаря
+  if(icon === '🐻') return 'bear'; // Мишка - спавнится сразу в зимнем биоме
+  if(icon === '🗡️') return 'dragonslayer'; // Драконоубийца - убивает драконов за 1 меч, но получает в 2 раза меньше очков
+  if(icon === '⚡') return 'berserker'; // Берсеркер - начинает с 1 HP и 1 едой, но получает +20 мечей
   // Секретные персонажи
   if(icon === '🔮') return 'seer'; // Провидец - видит монетки и сундуки сквозь туман
   if(icon === '⚔️') return 'warrior'; // Воин - x2 мечей от всех источников
-  if(icon === '🦅') return 'ranger'; // Следопыт - нет штрафов от леса/гор, видит на 3 клетки дальше, перемещается на 3 клетки
+  if(icon === '👹') return 'demon'; // Демон - нет штрафов от леса/гор, видит на 3 клетки дальше, перемещается на 3 клетки
   return 'none';
 }
 
@@ -1917,9 +2596,9 @@ function showNotification(text, isPositive){
   
   container.appendChild(notifDiv);
   
-  // Автоматически удаляем старые уведомления (оставляем только последние 4)
+  // Автоматически удаляем старые уведомления (оставляем только последние 3)
   const notifications = container.querySelectorAll('.notification');
-  if(notifications.length > 4){
+  if(notifications.length > 3){
     notifications[0].remove();
   }
 }
@@ -1928,6 +2607,10 @@ function showNotification(text, isPositive){
    ДРАКОН - СПЕЦИАЛЬНОЕ ОКНО СМЕРТИ
    ========== */
 function showDragonDeathDialog(){
+  const ability = getCharacterAbility();
+  const requiredSwords = (ability === 'dragonslayer') ? 1 : 20;
+  const swordText = requiredSwords === 1 ? '1 меч' : '20 мечей';
+  document.getElementById('dragonRequiredSwords').textContent = swordText;
   document.getElementById('dragonDeathDialog').style.display = 'grid';
 }
 
@@ -1938,6 +2621,33 @@ function closeDragonDeathDialog(){
 
 // Привязываем кнопку
 document.getElementById('dragonDeathBtn').onclick = closeDragonDeathDialog;
+
+/* ==========
+   ОСЬМИНОГ - СПЕЦИАЛЬНЫЕ ОКНА
+   ========== */
+function showOctopusDeathDialog(){
+  document.getElementById('octopusDeathDialog').style.display = 'grid';
+}
+
+function closeOctopusDeathDialog(){
+  document.getElementById('octopusDeathDialog').style.display = 'none';
+  gameOver();
+}
+
+function showOctopusVictoryDialog(){
+  playSound('achievement');
+  document.getElementById('octopusVictoryDialog').style.display = 'grid';
+}
+
+function closeOctopusVictoryDialog(){
+  document.getElementById('octopusVictoryDialog').style.display = 'none';
+  draw();
+  updateHud();
+}
+
+// Привязываем кнопки
+document.getElementById('octopusDeathBtn').onclick = closeOctopusDeathDialog;
+document.getElementById('octopusVictoryBtn').onclick = closeOctopusVictoryDialog;
 
 /* ==========
    СУНДУК С СОКРОВИЩАМИ - СПЕЦИАЛЬНОЕ ОКНО
@@ -1956,6 +2666,42 @@ function closeTreasureDialog(){
 
 // Привязываем кнопку
 document.getElementById('treasureBtn').onclick = closeTreasureDialog;
+
+/* ==========
+   ФЕНИКС - СПЕЦИАЛЬНОЕ ОКНО
+   ========== */
+function showPhoenixDialog(){
+  playSound('achievement');
+  document.getElementById('phoenixDialog').style.display = 'grid';
+}
+
+function closePhoenixDialog(){
+  document.getElementById('phoenixDialog').style.display = 'none';
+  draw();
+}
+
+// Привязываем кнопку
+document.getElementById('phoenixBtn').onclick = closePhoenixDialog;
+
+/* ==========
+   БУТЫЛКА С ПИСЬМОМ - СПЕЦИАЛЬНОЕ ОКНО
+   ========== */
+function showBottleDialog(message){
+  // Воспроизводим звук достижения
+  playSound('achievement');
+  
+  document.getElementById('bottleMessage').textContent = `"${message}"`;
+  document.getElementById('bottleDialog').style.display = 'grid';
+}
+
+function closeBottleDialog(){
+  document.getElementById('bottleDialog').style.display = 'none';
+  draw();
+  updateHud();
+}
+
+// Привязываем кнопку
+document.getElementById('bottleBtn').onclick = closeBottleDialog;
 
 /* ==========
    СЕКРЕТНЫЕ ПЕРСОНАЖИ - РАЗБЛОКИРОВКА
@@ -1978,7 +2724,7 @@ function checkSecretUnlocks(){
     } else if(item.unlockCondition === 'monsters35' && state.monstersKilled >= 35){
       shouldUnlock = true;
       unlockReason = `Убито ${state.monstersKilled} врагов за игру!`;
-    } else if(item.unlockCondition === 'score400' && state.score >= 400){
+    } else if(item.unlockCondition === 'score666' && state.score >= 666){
       shouldUnlock = true;
       unlockReason = `Достигнуто ${state.score} очков!`;
     }
@@ -2027,6 +2773,23 @@ function showSecretUnlockNotification(item, reason){
     <div class="name">${item.secretName}</div>
     <div class="reward" style="color:#fbbf24">${item.secretDescription}</div>
     <div style="margin-top:12px;font-size:14px;color:#d0d0e0">${reason}</div>
+  `;
+  
+  document.body.appendChild(notif);
+}
+
+// Функция для красивого уведомления сундука
+function showChestNotification(coins){
+  const notif = document.createElement('div');
+  notif.className = 'achievementNotification';
+  notif.style.background = 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)';
+  notif.innerHTML = `
+    <button style="position:absolute;top:10px;right:10px;background:rgba(255,255,255,0.2);border:none;color:white;font-size:20px;width:30px;height:30px;border-radius:50%;cursor:pointer;font-weight:bold" onclick="this.parentElement.remove()">×</button>
+    <div class="title">🎁 СУНДУК С СОКРОВИЩАМИ! 🎁</div>
+    <div class="icon">🎁</div>
+    <div class="name">Вы нашли древний сундук!</div>
+    <div class="reward">+${coins} монет!</div>
+    <div style="margin-top:8px;font-size:14px;color:#fbbf24">+3 очка за сундук</div>
   `;
   
   document.body.appendChild(notif);
@@ -2267,7 +3030,7 @@ function handleEventChoice(action){
     if(resource === 'sword') state.sword = Math.max(0, state.sword + value);
     if(resource === 'hp'){
       if(value > 0){
-        state.hp = Math.min(getMaxHP(), state.hp + value);
+        healHp(value);
       } else {
         state.deathReason = `Событие: ${currentEvent.title} - выбор привел к смерти`;
         loseHp(-value, `Событие: ${currentEvent.title} - выбор привел к смерти`);
@@ -2504,13 +3267,33 @@ function localToMap(x,y){
 function isValidMove(q,r){
   const ability = getCharacterAbility();
   const isAlien = ability === 'alien';
-  const isRanger = ability === 'ranger';
+  const isDemon = ability === 'demon';
+  const isMermaid = state.playerIcon === '🧜‍♀️';
   
   const targetTile = getTile(q, r);
   if(!targetTile) return false;
   
+  // Логика корабля - в корабле можно ходить по воде и выходить на сушу
+  if(state.inShip){
+    // Можем ходить по воде или выходить на сушу (любую соседнюю клетку)
+    return true;
+  }
+  
   // Если клетка открыта (revealed) - можно на неё ходить (открыта маяком или обычным способом)
-  if(targetTile.revealed && targetTile.base !== 'water'){
+  // Исключение: корабли на воде тоже кликабельны
+  // Водные объекты (акула, осьминог, бутылка) доступны только в корабле
+  const waterObjects = [OBJ.BOTTLE, OBJ.SHARK, OBJ.OCTOPUS];
+  const isWaterObject = waterObjects.includes(targetTile.obj);
+  
+  if(targetTile.revealed){
+    // Вода: только с кораблем или водными объектами (если в корабле)
+    // Русалка может ходить по воде без корабля
+      if(targetTile.base === 'water'){
+        if(targetTile.obj === OBJ.SHIP) return true;
+        if(isWaterObject && (state.inShip || isMermaid)) return true; // Русалка может взаимодействовать с водными объектами
+        if(isMermaid) return true; // Русалка может ходить по воде
+        return false;
+      }
     return true;
   }
   
@@ -2524,7 +3307,7 @@ function isValidMove(q,r){
     const isNeighbor = neighbors(tq, tr).some(n=>n.q===q && n.r===r);
     if(isNeighbor) return true;
     
-    // Пришелец может перемещаться на 2 клетки (соседи соседей)
+    // Следопыт может перемещаться на 2 клетки (соседи соседей)
     if(isAlien){
       const isSecondNeighbor = neighbors(tq, tr).some(n=>{
         return neighbors(n.q, n.r).some(n2=>n2.q===q && n2.r===r);
@@ -2532,8 +3315,8 @@ function isValidMove(q,r){
       if(isSecondNeighbor) return true;
     }
     
-    // Следопыт может перемещаться на 3 клетки
-    if(isRanger){
+    // Демон может перемещаться на 3 клетки
+    if(isDemon){
       const isSecondNeighbor = neighbors(tq, tr).some(n=>{
         return neighbors(n.q, n.r).some(n2=>n2.q===q && n2.r===r);
       });
@@ -2627,12 +3410,14 @@ function onPointer(evt){
   
   if(!tile.revealed){
     tile.revealed = true;
-    if(tile.base===TILE.WATER){ draw(); return; }
+    if(tile.base===TILE.WATER && tile.obj !== OBJ.SHIP && !state.inShip){ draw(); return; }
     moveTo(q,r);
     return;
   }
 
-  if(tile.base===TILE.WATER) return;
+  // Разрешаем движение на воду только если есть корабль или игрок в корабле
+  // Русалка может ходить по воде без корабля
+  if(tile.base===TILE.WATER && tile.obj !== OBJ.SHIP && !state.inShip && state.playerIcon !== '🧜‍♀️') return;
 
   moveTo(q,r);
 }
@@ -2660,8 +3445,8 @@ function moveTo(q,r){
       addScore(1);
       showNotification('🎯 +1 очко за шаг по песку', true);
       
-      // Песок: 10% шанс найти сундук с сокровищами (5-20 монет)
-      if(Math.random() < 0.1){
+      // Песок: 5% шанс найти сундук с сокровищами (5-20 монет)
+      if(Math.random() < 0.05){
         let treasureCoins = 5 + Math.floor(Math.random() * 16); // от 5 до 20
         
         // Улучшение: x2 монет
@@ -2771,8 +3556,19 @@ function moveTo(q,r){
         playSound('monster');
         
       if(state.sword>0){
+        // Волк исчезает сразу при победе
+        tile.obj = OBJ.NONE;
+        tile.monsterDefeated = true;
+        tile.scored = true;
+        tile.oneShotDone = true;
+        
         state.sword--;
-        let foodGain = 4;
+        let foodGain = 2; // Базовая добыча с волков
+        
+        // Волчий лук: +100% еды с волков
+        if(state.equippedWeapon === 'wolfBow'){
+          foodGain *= 2;
+        }
         
         // Вампир: +2 еды за убийство монстра
         if(ability === 'vampire'){
@@ -2784,6 +3580,9 @@ function moveTo(q,r){
         state.monstersKilled++;
           showNotification('⚔️ -1 меч на убийство волка', false);
           showNotification(`🍗 +${foodGain} еды за убийство волка`, true);
+          if(state.equippedWeapon === 'wolfBow'){
+            showNotification('🏹 Волчий лук: x2 еды с волков!', true);
+          }
           if(ability === 'vampire'){
             showNotification('🧛 Способность вампира: +2 еды!', true);
           }
@@ -2792,14 +3591,15 @@ function moveTo(q,r){
           // Проверяем достижение "убить 15 монстров"
           checkAchievement('monsters15');
           updateQuestProgress('monsters');
+          updateQuestProgress('wolves');
       }else{
         state.deathReason = 'Волк убил вас (не было меча для защиты)';
         loseHp(1, 'Волк убил вас (не было меча для защиты)');
         showNotification('🐺 -1 здоровье от волка', false);
-      }
         tile.monsterDefeated = true;
-      tile.scored = true;
-      tile.oneShotDone = true;
+        tile.scored = true;
+        tile.oneShotDone = true;
+      }
       }
       break;
     }
@@ -2808,8 +3608,14 @@ function moveTo(q,r){
         // Воспроизводим звук боя с монстром
         playSound('monster');
         
-      if(state.sword >= 2){
-        state.sword -= 2;
+      // Определяем требуемое количество мечей (1 с булавой, 2 без неё)
+      const requiredSwords = (state.equippedWeapon === 'mace') ? 1 : 2;
+      
+      if(state.sword >= requiredSwords){
+        // Череп исчезает сразу при победе
+        tile.obj = OBJ.NONE;
+        
+        state.sword -= requiredSwords;
         let foodGain = 6;
         
         // Вампир: +2 еды за убийство монстра
@@ -2820,7 +3626,7 @@ function moveTo(q,r){
         state.food += foodGain;
         addScore(10);
         state.monstersKilled++; // считаем черепа как монстров для достижений
-          showNotification('⚔️ -2 меча на убийство черепа', false);
+          showNotification(`⚔️ -${requiredSwords} меча на убийство черепа`, false);
           showNotification(`🍗 +${foodGain} еды за убийство черепа`, true);
           if(ability === 'vampire'){
             showNotification('🧛 Способность вампира: +2 еды!', true);
@@ -2830,9 +3636,10 @@ function moveTo(q,r){
           // Проверяем достижение "убить 15 монстров"
           checkAchievement('monsters15');
           updateQuestProgress('monsters');
+          updateQuestProgress('skulls');
       }else{
-        state.deathReason = 'Череп убил вас (нужно было 2 меча для защиты)';
-        loseHp(1, 'Череп убил вас (нужно было 2 меча для защиты)');
+        state.deathReason = `Череп убил вас (нужно было ${requiredSwords} меча для защиты)`;
+        loseHp(1, `Череп убил вас (нужно было ${requiredSwords} меча для защиты)`);
         showNotification('💀 -1 здоровье от черепа', false);
       }
         tile.skullDefeated = true;
@@ -2847,6 +3654,9 @@ function moveTo(q,r){
         playSound('monster');
         
       if(state.sword >= 2){
+        // Тигр исчезает сразу при победе
+        tile.obj = OBJ.NONE;
+        
         state.sword -= 2;
         let foodGain = 5;
         
@@ -2868,6 +3678,7 @@ function moveTo(q,r){
           // Проверяем достижение "убить 15 монстров"
           checkAchievement('monsters15');
           updateQuestProgress('monsters');
+          updateQuestProgress('tigers');
       }else{
         state.deathReason = 'Тигр убил вас (нужно было 2 меча для защиты)';
         loseHp(2, 'Тигр убил вас (нужно было 2 меча для защиты)');
@@ -2884,19 +3695,30 @@ function moveTo(q,r){
         // Воспроизводим звук боя с монстром
         playSound('monster');
         
-        if(state.sword >= 15){
-          state.sword -= 15;
-          addScore(35);
+        const ability = getCharacterAbility();
+        const requiredSwords = (ability === 'dragonslayer') ? 1 : 20;
+        const scoreReward = (ability === 'dragonslayer') ? 17 : 35; // В 2 раза меньше для драконоубийцы
+        
+        if(state.sword >= requiredSwords){
+          // Дракон исчезает сразу при победе
+          tile.obj = OBJ.NONE;
+          
+          state.sword -= requiredSwords;
+          addScore(scoreReward);
           state.dragonsKilled++;
-          showNotification('🐉 -15 мечей на убийство дракона!', false);
-          showNotification('🎯 +35 очков за убийство дракона!', true);
+          showNotification(`🐉 -${requiredSwords} ${requiredSwords === 1 ? 'меч' : 'мечей'} на убийство дракона!`, false);
+          showNotification(`🎯 +${scoreReward} очков за убийство дракона!`, true);
+          
+          if(ability === 'dragonslayer'){
+            showNotification('🗡️ Способность драконоубийцы: убийство за 1 меч!', true);
+          }
           
           // Проверяем достижение "убить дракона"
           checkAchievement('dragon');
         }else{
           // Дракон убивает игрока мгновенно - показываем специальное окно
           state.hp = 0;
-          state.deathReason = `Дракон испепелил вас! (нужно было 15 мечей, у вас было ${state.sword})`;
+          state.deathReason = `Дракон испепелил вас! (нужно было ${requiredSwords} ${requiredSwords === 1 ? 'меч' : 'мечей'}, у вас было ${state.sword})`;
           showDragonDeathDialog();
           return;
         }
@@ -2908,6 +3730,27 @@ function moveTo(q,r){
     }
     case OBJ.COIN: {
       if(!tile.oneShotDone){
+        // Монета исчезает сразу при подборе
+        console.log('Подбираем монету, устанавливаем tile.obj = OBJ.NONE');
+        console.log('До изменения:', tile.obj, tile.oneShotDone);
+        
+        // Полностью очищаем объект
+        tile.obj = OBJ.NONE;
+        tile.oneShotDone = true;
+        tile.scored = true;
+        tile.monsterDefeated = false;
+        tile.tigerDefeated = false;
+        tile.skullDefeated = false;
+        tile.dragonDefeated = false;
+        
+        console.log('После изменения:', tile.obj, tile.oneShotDone);
+        
+        // Проверяем, что изменения сохранились в state.tiles
+        const key = `${q},${r}`;
+        const stateTile = state.tiles.get(key);
+        console.log('Проверка в state.tiles:', stateTile.obj, stateTile.oneShotDone);
+        console.log('Тот же объект?', tile === stateTile);
+        
         // Воспроизводим звук монетки
         playSound('coin');
         
@@ -2920,17 +3763,28 @@ function moveTo(q,r){
         
         state.coinsInGame += coinGain;
         addScore(1);
-        tile.oneShotDone = true;
         showNotification(`🪙 +${coinGain} монета`, true);
         if(coinGain > 1){
           showNotification('💰 Улучшение: x2 монет!', true);
         }
         showNotification('🎯 +1 очко за монету', true);
+        
+        // Принудительно обновляем рендеринг несколько раз
+        draw();
+        setTimeout(() => draw(), 0);
+        requestAnimationFrame(() => draw());
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => draw());
+        });
       }
       break;
     }
     case OBJ.CHEST: {
       if(!tile.oneShotDone){
+        // Сундук исчезает сразу при открытии
+        tile.obj = OBJ.NONE;
+        tile.oneShotDone = true;
+        
         // Воспроизводим звук достижения (сундук - редкая находка!)
         playSound('achievement');
         
@@ -2944,21 +3798,20 @@ function moveTo(q,r){
         
         state.coinsInGame += chestCoins;
         addScore(3);
-        tile.oneShotDone = true;
-        showNotification(`🎁 Сундук! +${chestCoins} монет!`, true);
-        if(state.upgrades.includes('doubleCoins')){
-          showNotification('💰 Улучшение: x2 монет!', true);
-        }
-        showNotification('🎯 +3 очка за сундук', true);
+        
+        // Показываем красивое уведомление сундука
+        showChestNotification(chestCoins);
       }
       break;
     }
     case OBJ.EVENT: {
       if(!tile.oneShotDone){
+        // Событие исчезает сразу при взаимодействии
+        tile.obj = OBJ.NONE;
+        tile.oneShotDone = true;
+        
         // Воспроизводим звук события
         playSound('event');
-        
-        tile.oneShotDone = true;
         // Сохраняем позицию и тайл для события
         const eventData = {
           tile: tile,
@@ -2972,8 +3825,11 @@ function moveTo(q,r){
     }
     case OBJ.BEACON: {
       if(!tile.oneShotDone){
-        addScore(1);
+        // Маяк исчезает сразу при использовании
+        tile.obj = OBJ.NONE;
         tile.oneShotDone = true;
+        
+        addScore(1);
         showNotification('🗼 +1 очко за посещение маяка', true);
         // Сохраняем позицию и тайл для маяка
         const beaconData = {
@@ -2988,8 +3844,11 @@ function moveTo(q,r){
     }
     case OBJ.PORTAL: {
       if(!tile.oneShotDone){
-        addScore(10);
+        // Порталы исчезают сразу при использовании
+        tile.obj = OBJ.NONE;
         tile.oneShotDone = true;
+        
+        addScore(10);
         showNotification('🌀 +10 очков за использование портала!', true);
         
         // Телепортация на случайное место в радиусе ±500 клеток от текущей позиции
@@ -3105,22 +3964,165 @@ function moveTo(q,r){
       }
       break;
     }
+    case OBJ.SHIP: {
+      // Посадка в корабль (одноразовое использование)
+      if(!tile.oneShotDone && !state.inShip){
+        // Садимся в корабль
+        state.inShip = true;
+        state.shipPosition = {q, r};
+        state.shipOrigin = {q, r}; // Сохраняем начальную позицию корабля
+        tile.obj = OBJ.NONE; // Удаляем объект корабля с карты при посадке
+        tile.oneShotDone = true; // Помечаем что корабль использован
+        showNotification('⛵ Вы сели в корабль! Теперь можете плавать по воде', true);
+        
+        // Проверяем ачивку за открытие водного биома
+        if(!state.waterDiscovered){
+          state.waterDiscovered = true;
+          checkAchievement('waterDiscovery');
+        }
+      } else if(state.inShip){
+        // Уже в корабле - ничего не делаем
+        showNotification('⛵ Вы уже в корабле', true);
+      }
+      break;
+    }
+    case OBJ.BOTTLE: {
+      // Бутылка с письмом - только в корабле или для Русалки
+      if(!tile.oneShotDone && (state.inShip || state.playerIcon === '🧜‍♀️')){
+        // Бутылка исчезает сразу при чтении
+        tile.obj = OBJ.NONE;
+        tile.oneShotDone = true;
+        
+        addScore(10);
+        state.bottlesCollected++;
+        
+        // Случайные забавные сообщения
+        const messages = [
+          'Привет! Если ты читаешь это, значит я утонул. Шучу! Просто скучно было.',
+          'SOS! У меня закончилась еда... и Wi-Fi! Помогите!',
+          'Здесь был Вася. Теперь здесь кит.',
+          'Не верь картам! Земля плоская! Проверено личным опытом.',
+          'Если найдёшь это письмо, принеси мне пиццу. Координаты: где-то тут.',
+          'День 137: рыбы начали разговаривать. Или это я схожу с ума?',
+          'Продам корабль. Недорого. Причина: нашёл дракона.',
+          'Секрет долголетия: не встречайся с осьминогами.',
+          'Я нашёл сокровища! Теперь ищу карту, чтобы найти дорогу домой.',
+          'Внимание! Акулы дружелюбнее, чем кажутся. НЕ ВЕРЬ ИМ!',
+          'Записка для себя: больше никогда не пить морскую воду.',
+          'Если корабль тонет, а ты умеешь плавать - всё хорошо. Если нет - привет!',
+          'Осьминоги захватывают мир. Передайте дальше.',
+          'Нашёл портал в другое измерение. Там тоже одна вода.',
+          'Совет путешественнику: бери больше мечей. НАМНОГО больше.',
+        ];
+        const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+        
+        // Сохраняем сообщение для показа после перемещения
+        state.pendingBottleMessage = randomMessage;
+        
+        // Проверяем ачивку за 10 бутылок
+        checkAchievement('bottles10');
+      }
+      break;
+    }
+    case OBJ.SHARK: {
+      // Акула - только в корабле или для Русалки
+      if(!tile.oneShotDone && (state.inShip || state.playerIcon === '🧜‍♀️')){
+        playSound('monster');
+        
+        if(state.sword >= 5){
+          // Акула исчезает сразу при победе
+          tile.obj = OBJ.NONE;
+          
+          state.sword -= 5;
+          state.food += 4;
+          addScore(10);
+          state.monstersKilled++;
+          showNotification('🦈 -5 мечей на убийство акулы', false);
+          showNotification('🍗 +4 еды за убийство акулы', true);
+          showNotification('🎯 +10 очков за убийство акулы', true);
+          
+          checkAchievement('monsters15');
+          updateQuestProgress('monsters');
+          updateQuestProgress('sharks');
+        } else {
+          state.deathReason = `Акула напала на корабль! (нужно было 5 мечей, у вас было ${state.sword})`;
+          loseHp(2, state.deathReason);
+          showNotification('🦈 -2 здоровья от акулы!', false);
+        }
+        
+        tile.oneShotDone = true;
+        tile.scored = true;
+      }
+      break;
+    }
+    case OBJ.OCTOPUS: {
+      // Осьминог - босс, только в корабле или для Русалки
+      if(!tile.oneShotDone && (state.inShip || state.playerIcon === '🧜‍♀️')){
+        playSound('monster');
+        
+        if(state.sword >= 30){
+          // Осьминог исчезает сразу при победе
+          tile.obj = OBJ.NONE;
+          
+          state.sword -= 30;
+          addScore(100);
+          state.octopusesKilled = (state.octopusesKilled || 0) + 1;
+          showNotification('🐙 -30 мечей на убийство осьминога!', false);
+          showNotification('🎯 +100 очков за убийство осьминога!', true);
+          
+          // Проверяем ачивку за убийство осьминога
+          checkAchievement('octopus');
+          
+          showOctopusVictoryDialog();
+        } else {
+          // Осьминог убивает игрока мгновенно
+          state.hp = 0;
+          state.deathReason = `Осьминог затопил ваш корабль! (нужно было 30 мечей, у вас было ${state.sword})`;
+          showOctopusDeathDialog();
+          return;
+        }
+        
+        tile.oneShotDone = true;
+        tile.scored = true;
+      }
+      break;
+    }
   }
 
+  // Логика корабля обрабатывается в moveTo после обновления позиции игрока
+  
   // ТЕПЕРЬ ПЛАТИМ ЗА ХОД (после получения всех бонусов)
   
   // Определяем стоимость хода в зависимости от клетки
   let foodCost = 1;
   
-  // Снег всегда стоит 2 еды
-  if(tile.base === TILE.SNOW){
-    foodCost = 2;
+  // Движение в корабле по воде
+  if(state.inShip && tile.base === TILE.WATER){
+    foodCost = 2; // 2 еды за ход по воде в корабле
+    addScore(3); // +3 очка за ход по воде в корабле
+    showNotification('⛵ -2 еды, +3 очка за плавание', true);
   }
   
-  // Космонавт: леса, кактусы и горы стоят 1 еду (как обычная клетка)
+  // Русалка: движение по воде без корабля стоит 1 еду (как обычная клетка)
+  if(state.playerIcon === '🧜‍♀️' && tile.base === TILE.WATER && !state.inShip){
+    foodCost = 1; // 1 еда за ход по воде для Русалки
+    addScore(2); // +2 очка за плавание Русалки
+    showNotification('🧜‍♀️ -1 еда, +2 очка за плавание Русалки', true);
+  }
+  
+  // Снег всегда стоит 2 еды (1 еда с теплыми сапогами), кроме медведя
+  if(tile.base === TILE.SNOW && ability !== 'bear'){
+    foodCost = 2;
+    // Теплые сапоги снижают штраф за передвижение по зиме до -1 еды
+    if(state.equippedArmor === 'warmBoots'){
+      foodCost = 1;
+    }
+  }
+  
+  // Эльф: леса, кактусы и горы стоят 1 еду (как обычная клетка)
   // Следопыт: леса, кактусы и горы стоят 1 еду (как обычная клетка)
   // Для остальных персонажей леса/кактусы стоят 2 еды, горы - 3 еды
-  if(ability !== 'astronaut' && ability !== 'ranger'){
+  if(ability !== 'astronaut' && ability !== 'demon'){
     if(tile.obj === OBJ.FOREST) foodCost = 2;
     if(tile.obj === OBJ.CACTUS) foodCost = 2;
     if(tile.obj === OBJ.ROCK) foodCost = 3;
@@ -3137,9 +4139,9 @@ function moveTo(q,r){
   }
   
   if(hasFood){ 
-    // Супермен: 30% шанс не потерять еду
-    if(ability === 'superman' && Math.random() < 0.3){
-      showNotification('🦸 Способность Супермена: еда не потрачена!', true);
+    // Фермер: 20% шанс не потерять еду
+    if(ability === 'superman' && Math.random() < 0.2){
+      showNotification('🦸 Способность фермера: еда не потрачена!', true);
     } else {
       // Робот тратит мечи если не хватает еды
       if(ability === 'robot' && state.food < foodCost){
@@ -3156,12 +4158,12 @@ function moveTo(q,r){
         }
       }
       
-      // Космонавт и Следопыт: уведомление о способности
+      // Эльф и Следопыт: уведомление о способности
       if(ability === 'astronaut' && (tile.obj === OBJ.FOREST || tile.obj === OBJ.CACTUS || tile.obj === OBJ.ROCK)){
-        showNotification('🧑‍🚀 Способность космонавта: легкий проход!', true);
+        showNotification('🧑‍🚀 Способность эльфа: легкий проход!', true);
       }
-      if(ability === 'ranger' && (tile.obj === OBJ.FOREST || tile.obj === OBJ.CACTUS || tile.obj === OBJ.ROCK)){
-        showNotification('🦅 Способность Следопыта: легкий проход!', true);
+      if(ability === 'demon' && (tile.obj === OBJ.FOREST || tile.obj === OBJ.CACTUS || tile.obj === OBJ.ROCK)){
+        showNotification('👹 Способность Демона: легкий проход!', true);
       }
       
       // Песок: 10% шанс потерять дополнительную еду
@@ -3191,6 +4193,39 @@ function moveTo(q,r){
   const fromR = state.player.r;
   state.player = {q,r};
   
+  // Логика перемещения корабля
+  if(state.inShip){
+    if(tile.base === TILE.WATER){
+      // Движемся по воде - корабль перемещается с игроком
+      state.shipPosition = {q, r};
+    } else {
+      // Выходим на сушу - корабль исчезает полностью
+      // Удаляем корабль с текущей позиции (откуда пришел игрок) и помечаем как использованную
+      if(state.shipPosition){
+        const shipTile = getTile(state.shipPosition.q, state.shipPosition.r);
+        if(shipTile){
+          shipTile.obj = OBJ.NONE;
+          shipTile.oneShotDone = true; // Помечаем что корабль использован
+        }
+      }
+      
+      // Удаляем корабль с начальной позиции (если она отличается) и помечаем как использованную
+      if(state.shipOrigin){
+        const originTile = getTile(state.shipOrigin.q, state.shipOrigin.r);
+        if(originTile){
+          originTile.obj = OBJ.NONE;
+          originTile.oneShotDone = true; // Помечаем что корабль использован
+        }
+      }
+      
+      // Сбрасываем состояние корабля - корабль больше не существует
+      state.inShip = false;
+      state.shipPosition = null;
+      state.shipOrigin = null;
+      showNotification('⛵ Вы вышли из корабля', true);
+    }
+  }
+  
   // Сбрасываем смещение камеры, чтобы центрировать на игроке
   state.cameraOffset = {x: 0, y: 0};
 
@@ -3199,14 +4234,37 @@ function moveTo(q,r){
 
   updateHud();
   
+  // Принудительно обновляем рендеринг для отображения исчезнувших объектов
+  draw();
+  
   // Запускаем анимацию ПОСЛЕ обновления всего
   startPlayerAnimation(fromQ, fromR, q, r);
+  
+  // Показываем диалог бутылки, если есть отложенное сообщение
+  if(state.pendingBottleMessage){
+    const message = state.pendingBottleMessage;
+    state.pendingBottleMessage = null;
+    // Показываем диалог после небольшой задержки, чтобы анимация началась
+    setTimeout(() => {
+      showBottleDialog(message);
+    }, 200);
+  }
 }
 
 // Функция для автоматического открытия соседей игрока
 function revealNeighbors(q, r){
   const ability = getCharacterAbility();
-  const hasVisionUpgrade = state.upgrades.includes('visionRange');
+  const visionLevel = getUpgradeLevel('visionRange');
+  
+  // Вычисляем общий радиус обзора: базовые способности + улучшения
+  let totalVisionRadius = 1; // Базовый радиус для всех персонажей
+  
+  // Добавляем способности персонажей
+  if(ability === 'alien') totalVisionRadius = 2; // Следопыт видит на 2 ряда
+  if(ability === 'demon') totalVisionRadius = 3; // Демон видит на 3 ряда
+  
+  // Добавляем улучшения радиуса обзора
+  totalVisionRadius += visionLevel;
   
   // Обычное открытие соседей (1 ряд)
   neighbors(q, r).forEach(n => {
@@ -3218,8 +4276,8 @@ function revealNeighbors(q, r){
     }
   });
   
-  // Второй ряд открывается для Пришельца или если есть улучшение
-  if(ability === 'alien' || ability === 'ranger' || hasVisionUpgrade){
+  // Второй ряд и дальше открывается в зависимости от общего радиуса
+  if(totalVisionRadius >= 2){
     // Открываем соседей соседей (второй ряд)
     neighbors(q, r).forEach(n => {
       if(!inBounds(n.q, n.r)) return;
@@ -3234,8 +4292,8 @@ function revealNeighbors(q, r){
     });
   }
   
-  // Третий ряд открывается только для Следопыта или для Пришельца с улучшением
-  if(ability === 'ranger' || (ability === 'alien' && hasVisionUpgrade)){
+  // Третий ряд открывается если общий радиус >= 3
+  if(totalVisionRadius >= 3){
     // Открываем соседей соседей соседей (третий ряд)
     neighbors(q, r).forEach(n => {
       if(!inBounds(n.q, n.r)) return;
@@ -3253,8 +4311,8 @@ function revealNeighbors(q, r){
     });
   }
   
-  // Четвертый ряд открывается только для Следопыта с улучшением
-  if(ability === 'ranger' && hasVisionUpgrade){
+  // Четвертый ряд открывается если общий радиус >= 4
+  if(totalVisionRadius >= 4){
     // Открываем четвертый ряд
     neighbors(q, r).forEach(n => {
       if(!inBounds(n.q, n.r)) return;
@@ -3280,7 +4338,9 @@ function addScore(n){
   state.score += n;
   if(state.score > state.best){
     state.best = state.score;
+    state.bestIcon = state.playerIcon;
     localStorage.setItem('hex-best', state.best);
+    localStorage.setItem('hex-best-icon', state.bestIcon);
     
     // Проверяем достижения за рекорды
     checkAchievement('score100');
@@ -3297,6 +4357,17 @@ function loseHp(n, reason){
   
   if(state.hp<=0){
     state.hp=0;
+    
+    
+    // Проверяем способность Феникса к возрождению
+    if(state.playerIcon === '🔥' && !state.phoenixRevived){
+      state.phoenixRevived = true;
+      healHp(1);
+      state.food = 10;
+      showPhoenixDialog();
+      return;
+    }
+    
     // Сохраняем причину смерти
     if(reason){
       state.deathReason = reason;
@@ -3316,6 +4387,46 @@ function showDamageEffect(){
       damageEl.classList.remove('show');
     }, 500);
   }, 10);
+}
+
+// Визуальный эффект лечения
+function showHealEffect(){
+  const healEl = document.getElementById('healEffect');
+  healEl.classList.remove('show');
+  // Небольшая задержка чтобы анимация перезапустилась
+  setTimeout(() => {
+    healEl.classList.add('show');
+    setTimeout(() => {
+      healEl.classList.remove('show');
+    }, 500);
+  }, 10);
+}
+
+// Визуальный эффект шлема святого
+function showHelmetEffect(){
+  const healEl = document.getElementById('healEffect');
+  healEl.classList.remove('show');
+  // Небольшая задержка чтобы анимация перезапустилась
+  setTimeout(() => {
+    healEl.classList.add('show');
+    setTimeout(() => {
+      healEl.classList.remove('show');
+    }, 1000); // Дольше для шлема
+  }, 10);
+}
+
+// Функция для восстановления HP
+function healHp(amount){
+  const oldHp = state.hp;
+  state.hp = Math.min(getMaxHP(), state.hp + amount);
+  const actualHeal = state.hp - oldHp;
+  
+  if(actualHeal > 0){
+    // Показываем эффект лечения
+    showHealEffect();
+  }
+  
+  return actualHeal;
 }
 
 /* ==========
@@ -3338,12 +4449,23 @@ function updateHud(){
     const span=document.createElement('span');
     span.className='icon';
     span.textContent='❤️';
+    
+    // Определяем, является ли это HP от брони
+    const baseHp = BASE_HP + state.upgrades.filter(u => u.startsWith('maxHp_')).length;
+    const isArmorHp = i >= baseHp;
+    
     // Если здоровья меньше - делаем сердечко прозрачным
     if(i >= state.hp){
       span.style.opacity = '0.25';
     } else {
       span.style.opacity = '1';
     }
+    
+    // HP от брони отображаем другим цветом (синим)
+    if(isArmorHp && i < state.hp){
+      span.style.filter = 'hue-rotate(200deg) saturate(1.5)';
+    }
+    
     elHpIcons.appendChild(span);
   }
   
@@ -3378,21 +4500,355 @@ function updateHud(){
   elScore.textContent = state.score;
   elBest.textContent = state.best;
   document.getElementById('coinsDisplay').textContent = state.coinsInGame;
+  
+  // Обновляем иконку рекорда
+  const bestIconElement = document.getElementById('bestIcon');
+  if(bestIconElement && state.bestIcon){
+    bestIconElement.textContent = state.bestIcon;
+  } else if(bestIconElement){
+    bestIconElement.textContent = '';
+  }
+  
+  // Обновляем инвентарь
+  updateInventory();
+}
+
+// Функция для обновления инвентаря в игре
+function updateInventory(){
+  const inventorySlots = document.getElementById('inventorySlots');
+  inventorySlots.innerHTML = '';
+  
+  // Создаем слоты инвентаря
+  for(let i = 0; i < state.inventorySlots; i++){
+    const slot = document.createElement('div');
+    slot.className = 'slot';
+    slot.dataset.slotIndex = i;
+    
+    // Находим предмет в этом слоте
+    const item = state.inventory[i];
+    if(item){
+      const itemData = getItemData(item.id);
+      if(itemData){
+        // Для брони и оружия показываем только экипированные предметы
+        if(itemData.type === 'armor' || itemData.type === 'weapon'){
+          const isEquipped = (itemData.type === 'armor' && state.equippedArmor === item.id) ||
+                            (itemData.type === 'weapon' && state.equippedWeapon === item.id);
+          
+          if(isEquipped) {
+            slot.innerHTML = `
+              <div class="itemIcon">${itemData.icon}</div>
+            `;
+            slot.classList.add('equipped');
+            
+            // Шлем святого кликабельный (активный)
+            if(itemData.type === 'armor' && itemData.id === 'holyHelmet'){
+              if(!state.holyHelmetUsed){
+                slot.style.cursor = 'pointer';
+                slot.onclick = () => useItem(item.id, itemData);
+              } else {
+                slot.style.cursor = 'default';
+                slot.style.opacity = '0.5'; // Делаем прозрачным
+                slot.onclick = null;
+              }
+            }
+            // Остальная броня не кликабельная (пассивная)
+            else if(itemData.type === 'armor'){
+              slot.style.cursor = 'default';
+              slot.onclick = null;
+            }
+            // Меч кликабельный только если не использован
+            else if(itemData.type === 'weapon' && itemData.id === 'sword'){
+              if(!state.swordUsed){
+                slot.style.cursor = 'pointer';
+                slot.onclick = () => useItem(item.id, itemData);
+              } else {
+                slot.style.cursor = 'default';
+                slot.style.opacity = '0.5'; // Делаем прозрачным
+                slot.onclick = null;
+              }
+            }
+          } else {
+            // Неэкипированная броня/оружие не показывается в инвентаре
+            slot.innerHTML = '<div style="font-size:20px;opacity:0.3">📦</div>';
+            slot.onclick = null;
+          }
+        } else {
+          // Расходные материалы показываются всегда
+          slot.innerHTML = `
+            <div class="itemIcon">${itemData.icon}</div>
+          `;
+          slot.onclick = () => useItem(item.id, itemData);
+        }
+      }
+    }
+    
+    inventorySlots.appendChild(slot);
+  }
+}
+
+// Функция для получения данных предмета по ID
+function getItemData(itemId){
+  const allItems = [...SHOP_ITEMS_DATA.consumables, ...SHOP_ITEMS_DATA.armor, ...SHOP_ITEMS_DATA.weapons];
+  return allItems.find(item => item.id === itemId);
+}
+
+// Функция для использования предмета
+function useItem(itemId, itemData){
+  if(!itemData) return;
+  
+  if(itemData.type === 'consumable'){
+    // Используем расходный материал
+    if(itemData.id === 'map'){
+      // Карта - открывает область вокруг персонажа
+      revealAreaAroundPlayer();
+      // Карта исчезает после использования
+      removeItem(itemId, 1);
+    } else if(itemData.id === 'potion'){
+      // Зелье - восстанавливает 5 HP
+      healHp(5);
+      removeItem(itemId, 1);
+    } else if(itemData.id === 'teleportStone'){
+      // Камень телепортации - работает как телепорт
+      teleportPlayer();
+      removeItem(itemId, 1);
+    } else if(itemData.id === 'foodPack'){
+      // Пак еды - добавляет 5 еды
+      state.food += 5;
+      showNotification('🍖 +5 еды!', true);
+      removeItem(itemId, 1);
+    } else if(itemData.id === 'swordPack'){
+      // Пак мечей - добавляет 5 мечей
+      state.sword += 5;
+      showNotification('⚔️ +5 мечей!', true);
+      removeItem(itemId, 1);
+    } else if(itemData.id === 'hunterMark'){
+      // Метка охотника - показывает всех монстров в радиусе 15 блоков
+      state.hunterMarkActive = true;
+      showNotification('🎯 Метка охотника активирована! Видите всех монстров в радиусе 15 блоков', true);
+      removeItem(itemId, 1);
+    }
+    
+    // Обновляем интерфейс
+    updateInventory();
+    updateHud();
+  } else if(itemData.type === 'armor'){
+    // Шлем святого - активный (можно использовать один раз за игру)
+    if(itemData.id === 'holyHelmet' && !state.holyHelmetUsed){
+      state.holyHelmetUsed = true;
+      healHp(getMaxHP());
+      showHelmetEffect(); // Специальный эффект для шлема
+      showNotification('⛑️ Шлем святого восстановил все здоровье!', true);
+      updateInventory();
+      updateHud();
+    } else if(itemData.id === 'holyHelmet' && state.holyHelmetUsed){
+      showNotification('⛑️ Шлем святого уже использован в этой игре', false);
+    }
+    // Остальная броня пассивная - не кликабельная в игре
+  } else if(itemData.type === 'weapon' && itemData.id === 'sword'){
+    // Меч активный - дает +5 мечей при клике (если еще не использован)
+    if(!state.swordUsed){
+      state.sword += 5;
+      state.swordUsed = true;
+      showNotification('⚔️ +5 мечей от меча!', true);
+      updateInventory();
+      updateHud();
+    }
+  }
+}
+
+// Функция для открытия области вокруг игрока (карта)
+function revealAreaAroundPlayer(){
+  const playerQ = state.player.q;
+  const playerR = state.player.r;
+  
+  // Открываем область в радиусе 15 клеток вокруг игрока (как маяк)
+  for(let q = playerQ - 15; q <= playerQ + 15; q++){
+    for(let r = playerR - 15; r <= playerR + 15; r++){
+      if(inBounds(q, r)){
+        // Проверяем расстояние (гексагональная сетка)
+        const distance = Math.max(Math.abs(q - playerQ), Math.abs(r - playerR), Math.abs((q - playerQ) + (r - playerR)));
+        if(distance <= 15){
+          const tile = getTile(q, r);
+          tile.revealed = true;
+        }
+      }
+    }
+  }
+  
+  showNotification('🗺️ Область в радиусе 15 клеток открыта!', true);
+  draw();
+}
+
+// Функция для телепортации игрока (камень телепортации)
+function teleportPlayer(){
+  const q = state.player.q;
+  const r = state.player.r;
+  
+  // Телепортация на случайное место в радиусе ±500 клеток от текущей позиции
+  // Минимальное расстояние 100 клеток чтобы точно переместиться
+  let targetQ, targetR;
+  let attempts = 0;
+  const maxAttempts = 100;
+  
+  do {
+    // Случайное смещение в диапазоне от -500 до +500 для каждой координаты
+    const offsetQ = Math.floor(Math.random() * 1001) - 500; // от -500 до +500
+    const offsetR = Math.floor(Math.random() * 1001) - 500; // от -500 до +500
+    
+    targetQ = q + offsetQ;
+    targetR = r + offsetR;
+    
+    // Проверяем что расстояние достаточно большое (минимум 100 клеток)
+    const distance = Math.sqrt(offsetQ * offsetQ + offsetR * offsetR);
+    
+    // Если координаты в пределах карты и расстояние достаточное
+    if(inBounds(targetQ, targetR) && distance >= 100){
+      break;
+    }
+    
+    attempts++;
+  } while(attempts < maxAttempts);
+  
+  // Если не нашли после многих попыток, используем последние координаты в пределах карты
+  targetQ = Math.max(100, Math.min(MAP_SIZE - 100, targetQ));
+  targetR = Math.max(100, Math.min(MAP_SIZE - 100, targetR));
+  
+  // СНАЧАЛА генерируем большую область вокруг целевой точки (радиус 50 клеток)
+  for(let dq = -50; dq <= 50; dq++){
+    for(let dr = -50; dr <= 50; dr++){
+      const genQ = targetQ + dq;
+      const genR = targetR + dr;
+      if(inBounds(genQ, genR)){
+        ensureAreaGenerated(genQ, genR);
+      }
+    }
+  }
+  
+  // ТЕПЕРЬ ищем ближайшую не-водную клетку
+  let found = false;
+  for(let searchRadius = 0; searchRadius < 50 && !found; searchRadius++){
+    for(let dq = -searchRadius; dq <= searchRadius && !found; dq++){
+      for(let dr = -searchRadius; dr <= searchRadius && !found; dr++){
+        const testQ = targetQ + dq;
+        const testR = targetR + dr;
+        if(inBounds(testQ, testR)){
+          const testTile = getTile(testQ, testR);
+          if(testTile && testTile.base !== TILE.WATER){
+            targetQ = testQ;
+            targetR = testR;
+            found = true;
+          }
+        }
+      }
+    }
+  }
+  
+  // Если все еще не нашли (очень маловероятно), принудительно создаем травяную клетку
+  if(!found){
+    ensureAreaGenerated(targetQ, targetR);
+    const forceTile = getTile(targetQ, targetR);
+    if(forceTile){
+      forceTile.base = TILE.GRASS;
+    }
+  }
+  
+  // Вычисляем реальное расстояние телепортации
+  const actualDistance = Math.round(Math.sqrt(Math.pow(targetQ - q, 2) + Math.pow(targetR - r, 2)));
+  
+  // Телепортируем игрока
+  const oldQ = state.player.q;
+  const oldR = state.player.r;
+  state.player.q = targetQ;
+  state.player.r = targetR;
+  
+  // Сбрасываем смещение камеры
+  state.cameraOffset = {x: 0, y: 0};
+  
+  // Генерируем дополнительную область вокруг нового места (радиус 30 клеток)
+  for(let dq = -30; dq <= 30; dq++){
+    for(let dr = -30; dr <= 30; dr++){
+      const genQ = targetQ + dq;
+      const genR = targetR + dr;
+      if(inBounds(genQ, genR)){
+        ensureAreaGenerated(genQ, genR);
+      }
+    }
+  }
+  
+  // Открываем область вокруг новой позиции
+  const targetTile = getTile(targetQ, targetR);
+  if(targetTile){
+    targetTile.revealed = true;
+    targetTile.visited = true;
+  }
+  revealNeighbors(targetQ, targetR);
+  
+  showNotification('💎 Вы телепортировались с помощью камня!', true);
+  showNotification(`📍 Расстояние: ${actualDistance} клеток`, true);
+  
+  // Обновляем HUD и завершаем ход
+  updateHud();
+  draw();
 }
 
 /* ==========
    СИСТЕМА ЗАДАНИЙ
    ========== */
 function generateQuest(){
-  const questTypes = [
-    {type: 'homes', icon: '🏠', getText: (n) => `Посетите ${n} ${n===1?'дом':n<5?'дома':'домов'}`, getTarget: () => state.questsCompleted * 1 + 3},
-    {type: 'castles', icon: '🏰', getText: (n) => `Посетите ${n} ${n===1?'замок':n<5?'замка':'замков'}`, getTarget: () => state.questsCompleted * 1 + 3},
-    {type: 'forests', icon: '🌲', getText: (n) => `Исследуйте ${n} ${n===1?'лес':n<5?'леса':'лесов'}`, getTarget: () => state.questsCompleted * 1 + 4},
-    {type: 'mountains', icon: '⛰️', getText: (n) => `Покорите ${n} ${n===1?'гору':n<5?'горы':'гор'}`, getTarget: () => state.questsCompleted * 1 + 4},
+  const currentReward = state.questReward;
+  
+  // Базовые квесты (всегда доступны)
+  const baseQuests = [
+    {type: 'homes', icon: '🏠', getText: (n) => `Посетите ${n} ${n===1?'дом':n<5?'дома':'домов'}`, getTarget: () => state.questsCompleted * 1 + 2},
+    {type: 'castles', icon: '🏰', getText: (n) => `Посетите ${n} ${n===1?'замок':n<5?'замка':'замков'}`, getTarget: () => state.questsCompleted * 1 + 2},
+    {type: 'forests', icon: '🌲', getText: (n) => `Исследуйте ${n} ${n===1?'лес':n<5?'леса':'лесов'}`, getTarget: () => state.questsCompleted * 1 + 2},
+    {type: 'mountains', icon: '⛰️', getText: (n) => `Покорите ${n} ${n===1?'гору':n<5?'горы':'гор'}`, getTarget: () => state.questsCompleted * 1 + 2},
     {type: 'monsters', icon: '⚔️', getText: (n) => `Убейте ${n} ${n===1?'врага':n<5?'врагов':'врагов'}`, getTarget: () => Math.max(2, state.questsCompleted * 1 + 2)}
   ];
   
-  const questType = questTypes[Math.floor(Math.random() * questTypes.length)];
+  let availableQuests = [...baseQuests];
+  
+  // Квесты на волков (с награды 15+)
+  if(currentReward >= 15){
+    availableQuests.push({
+      type: 'wolves', 
+      icon: '🐺', 
+      getText: (n) => `Убейте ${n} ${n===1?'волка':n<5?'волков':'волков'}`, 
+      getTarget: () => Math.max(2, Math.floor(state.questsCompleted * 0.5) + 2)
+    });
+  }
+  
+  // Квесты на тигров (с награды 20+) - пустыня
+  if(currentReward >= 20){
+    availableQuests.push({
+      type: 'tigers', 
+      icon: '🐅', 
+      getText: (n) => `Убейте ${n} ${n===1?'тигра':n<5?'тигров':'тигров'} в пустыне`, 
+      getTarget: () => Math.max(2, Math.floor(state.questsCompleted * 0.4) + 1)
+    });
+  }
+  
+  // Квесты на черепа (с награды 25+) - снег
+  if(currentReward >= 25){
+    availableQuests.push({
+      type: 'skulls', 
+      icon: '💀', 
+      getText: (n) => `Убейте ${n} ${n===1?'череп':n<5?'черепа':'черепов'} на снегу`, 
+      getTarget: () => Math.max(1, Math.floor(state.questsCompleted * 0.3) + 1)
+    });
+  }
+  
+  // Квесты на акул (с награды 35+) - вода
+  if(currentReward >= 35){
+    availableQuests.push({
+      type: 'sharks', 
+      icon: '🦈', 
+      getText: (n) => `Убейте ${n} ${n===1?'акулу':n<5?'акулы':'акул'} в океане`, 
+      getTarget: () => Math.max(1, Math.floor(state.questsCompleted * 0.2) + 1)
+    });
+  }
+  
+  const questType = availableQuests[Math.floor(Math.random() * availableQuests.length)];
   const target = questType.getTarget();
   
   state.currentQuest = {
@@ -3408,7 +4864,21 @@ function generateQuest(){
 }
 
 function updateQuestProgress(questType){
-  if(!state.currentQuest || state.currentQuest.type !== questType) return;
+  if(!state.currentQuest) return;
+  
+  // Проверяем, подходит ли тип квеста
+  let isMatch = false;
+  
+  if(state.currentQuest.type === questType){
+    isMatch = true;
+  }
+  
+  // Специфичные типы также засчитываются для общего типа 'monsters'
+  if(state.currentQuest.type === 'monsters' && ['wolves', 'tigers', 'skulls', 'sharks'].includes(questType)){
+    isMatch = true;
+  }
+  
+  if(!isMatch) return;
   
   state.currentQuest.current++;
   
@@ -3482,8 +4952,14 @@ function newGame(){
   state.coinsInGame=0;
   state.monstersKilled=0;
   state.dragonsKilled=0;
+  state.octopusesKilled=0;
+  state.phoenixRevived=false;
+  state.holyHelmetUsed=false;
+  state.hunterMarkActive=false;
+  state.bottlesCollected=0;
   state.snowDiscovered=false;
   state.desertDiscovered=false;
+  state.waterDiscovered=false;
   // Сброс системы заданий
   state.questsCompleted=0;
   state.questReward=5;
@@ -3495,32 +4971,67 @@ function newGame(){
   state.deathReason='';
   state.hp=getMaxHP();
   state.food=getStartFood();
-  state.sword=2;
+  state.sword = getStartSword();
+  state.swordUsed = false; // Сбрасываем использование меча
+  state.inventorySlots = getStartInventorySlots(); // Инициализируем слоты инвентаря
   state.over=false;
   state.seed=Date.now();
   state.tiles.clear();
   state.hoverTile=null;
   state.cameraOffset={x:0,y:0};
   state.isDragging=false;
+  // Сброс состояния корабля
+  state.inShip=false;
+  state.shipPosition=null;
+  state.shipOrigin=null;
+  state.pendingBottleMessage=null;
   unlockQueue=[]; // Очищаем очередь уведомлений
   
-  // Ищем безопасный старт (только трава, БЕЗ объектов и НЕ снег) - центр карты 4000x4000
+  // Ищем стартовую позицию в зависимости от персонажа
   let startQ = 2000, startR = 2000;
-  for(let tries=0; tries<200; tries++){
-    const testQ = 1990 + Math.floor(Math.random()*20);
-    const testR = 1990 + Math.floor(Math.random()*20);
-    const testTile = getTile(testQ, testR);
-    
-    // Генерируем объекты для этой клетки
-    ensureAreaGenerated(testQ, testR);
-    
-    // Проверяем: только трава и НЕТ объектов (не снег, не песок)
-    if(testTile && 
-       testTile.base === TILE.GRASS && 
-       testTile.obj === OBJ.NONE){
-      startQ = testQ;
-      startR = testR;
-      break;
+  const ability = getCharacterAbility();
+  
+  if(ability === 'bear'){
+    // Медведь спавнится в снежном биоме
+    for(let tries=0; tries<300; tries++){
+      // Ищем дальше от центра (где больше снега)
+      const distance = 150 + Math.floor(Math.random()*100);
+      const angle = Math.random() * 2 * Math.PI;
+      const testQ = 2000 + Math.floor(distance * Math.cos(angle));
+      const testR = 2000 + Math.floor(distance * Math.sin(angle));
+      const testTile = getTile(testQ, testR);
+      
+      // Генерируем объекты для этой клетки
+      ensureAreaGenerated(testQ, testR);
+      
+      // Проверяем: только снег и НЕТ объектов
+      if(testTile && 
+         testTile.base === TILE.SNOW && 
+         testTile.obj === OBJ.NONE){
+        startQ = testQ;
+        startR = testR;
+        state.snowDiscovered = true; // Автоматически открываем снежный биом
+        break;
+      }
+    }
+  } else {
+    // Обычные персонажи спавнятся в траве (как раньше)
+    for(let tries=0; tries<200; tries++){
+      const testQ = 1990 + Math.floor(Math.random()*20);
+      const testR = 1990 + Math.floor(Math.random()*20);
+      const testTile = getTile(testQ, testR);
+      
+      // Генерируем объекты для этой клетки
+      ensureAreaGenerated(testQ, testR);
+      
+      // Проверяем: только трава и НЕТ объектов (не снег, не песок)
+      if(testTile && 
+         testTile.base === TILE.GRASS && 
+         testTile.obj === OBJ.NONE){
+        startQ = testQ;
+        startR = testR;
+        break;
+      }
     }
   }
   
@@ -3550,6 +5061,7 @@ function newGame(){
   updateHud();
   draw();
 }
+
 
 function gameOver(){
   state.over=true;
@@ -3604,12 +5116,18 @@ function showScreen(screen){
   document.getElementById('questBox').style.display = (screen === 'game' && state.currentQuest) ? 'block' : 'none';
   document.getElementById('buttons').style.display = screen === 'game' ? '' : 'none';
   document.getElementById('soundButtons').style.display = screen === 'game' ? 'flex' : 'none';
-  document.getElementById('legend').style.display = screen === 'game' ? '' : 'none';
   document.getElementById('devCheats').style.display = (screen === 'game' && state.devMode) ? 'flex' : 'none';
+  document.getElementById('inventory').style.display = screen === 'game' ? 'block' : 'none';
   
   if(screen === 'menu'){
     updateMenuStats();
   } else if(screen === 'shop'){
+    // Сбрасываем вкладку на "Персонажи" при входе в магазин
+    currentShopTab = 'characters';
+    selectedShopItem = null;
+    document.getElementById('tabCharacters').classList.add('active');
+    document.getElementById('tabUpgrades').classList.remove('active');
+    document.getElementById('tabItems').classList.remove('active');
     updateShop();
   } else if(screen === 'leaderboard'){
     renderLeaderboard('leaderboardTable');
@@ -3715,25 +5233,55 @@ function checkAndAddToLeaderboard(){
 
 // Магазин - Персонажи
 const SHOP_ITEMS = [
-  {icon: '🧙', name: 'Маг', price: 0, description: 'Обычный персонаж без особых способностей'},
-  {icon: '🧑‍🚀', name: 'Космонавт', price: 200, description: 'Проходит леса и горы за 1 еду (как обычную траву)'},
-  {icon: '🦸', name: 'Супермен', price: 400, description: '30% шанс не потерять еду при ходе'},
-  {icon: '🧛', name: 'Вампир', price: 600, description: 'Восстанавливает +2 еды за каждого убитого врага (волка или черепа)'},
+  {icon: '🧙‍♂️', name: 'Маг', price: 0, description: 'Обычный персонаж без особых способностей'},
+  {icon: '🧝‍♂️', name: 'Эльф', price: 100, description: 'Проходит леса и горы за 1 еду (как обычную траву)'},
+  {icon: '👨‍🌾', name: 'Фермер', price: 400, description: '20% шанс не потерять еду при ходе'},
+  {icon: '🧛‍♂️', name: 'Вампир', price: 600, description: 'Восстанавливает +2 еды за каждого убитого врага (волка или черепа)'},
   {icon: '🤖', name: 'Робот', price: 800, description: 'Оружие считается за еду'},
-  {icon: '👽', name: 'Пришелец', price: 1000, description: 'Видит дальше на 1 ряд и может перемещаться на 2 клетки за ход'},
+  {icon: '🕵️‍♂️', name: 'Следопыт', price: 1000, description: 'Видит дальше на 1 ряд и может перемещаться на 2 клетки за ход'},
+  {icon: '🐦‍🔥', name: 'Феникс', price: 1500, description: 'Возрождается 1 раз после смерти с 1 HP и 10 еды'},
+  {icon: '🧜‍♀️', name: 'Русалка', price: 1500, description: 'Может ходить по воде без корабля и не получает штрафы от воды'},
+  {icon: '🎒', name: 'Собиратель', price: 1500, description: '+1 слот инвентаря'},
+  {icon: '🐻', name: 'Мишка', price: 3000, description: 'Медведь, который спавнится в зимнем биоме и не получает штрафы от снега'},
+  {icon: '🗡️', name: 'Драконоубийца', price: 5000, description: 'Убивает драконов за 1 меч, но получает в 2 раза меньше очков за драконов'},
+  {icon: '⚡', name: 'Берсеркер', price: 5000, description: 'Начинает с 1 HP и 1 едой, но получает +20 мечей в начале игры'},
   // СЕКРЕТНЫЕ ПЕРСОНАЖИ
   {icon: '🔮', name: '???', price: 0, description: 'Этот персонаж секретный и его особенности неизвестны', secretDescription: 'Видит монетки и сундуки сквозь туман войны', secretName: 'Провидец', secret: true, unlockCondition: 'coins150'},
   {icon: '⚔️', name: '???', price: 0, description: 'Этот персонаж секретный и его особенности неизвестны', secretDescription: 'Получает в 2 раза больше мечей от всех источников', secretName: 'Воин', secret: true, unlockCondition: 'monsters35'},
-  {icon: '🦅', name: '???', price: 0, description: 'Этот персонаж секретный и его особенности неизвестны', secretDescription: 'Не получает штрафы от деревьев и гор, видит на 3 клетки дальше и перемещается на 3 клетки за ход', secretName: 'Следопыт', secret: true, unlockCondition: 'score400'}
+  {icon: '👹', name: '???', price: 0, description: 'Этот персонаж секретный и его особенности неизвестны', secretDescription: 'Не получает штрафы от деревьев и гор, видит на 3 клетки дальше и перемещается на 3 клетки за ход', secretName: 'Демон', secret: true, unlockCondition: 'score666'}
 ];
 
 // Магазин - Улучшения
 const SHOP_UPGRADES = [
-  {id: 'maxHp', icon: '❤️', name: '+1 Макс здоровье', price: 20, description: 'Увеличивает максимальное здоровье на 1 (7 вместо 6)'},
-  {id: 'startFood', icon: '🍗', name: '+5 Еды в начале', price: 50, description: 'Начинаете игру с 15 едой вместо 10'},
+  {id: 'maxHp', icon: '❤️', name: '+1 Макс здоровье', price: 20, description: 'Увеличивает максимальное здоровье на 1', maxLevel: 5},
+  {id: 'startFood', icon: '🍗', name: '+1 Еды в начале', price: 20, description: 'Начинаете игру с +1 едой', maxLevel: 5},
+  {id: 'startSword', icon: '⚔️', name: '+1 Меча в начале', price: 40, description: 'Начинаете игру с +1 мечом', maxLevel: 5},
   {id: 'doubleCoins', icon: '🪙', name: 'x2 Монет', price: 200, description: 'Получаете в 2 раза больше монет от всех источников'},
-  {id: 'visionRange', icon: '👁️', name: '+1 Радиус обзора', price: 300, description: 'Видите на 1 клетку дальше вокруг себя'}
+  {id: 'visionRange', icon: '👁️', name: '+1 Радиус обзора', price: 300, description: 'Видите на 1 клетку дальше вокруг себя', maxLevel: 2},
+  {id: 'inventorySlots', icon: '🎒', name: '+1 Слот инвентаря', price: 500, description: 'Увеличивает количество слотов инвентаря на 1', maxLevel: 4}
 ];
+
+// Магазин - Предметы
+const SHOP_ITEMS_DATA = {
+  consumables: [
+    {id: 'map', icon: '🗺️', name: 'Карта', price: 500, description: 'Открывает область вокруг персонажа', type: 'consumable'},
+    {id: 'potion', icon: '🧪', name: 'Зелье', price: 50, description: 'Восстанавливает 5 HP', type: 'consumable'},
+    {id: 'teleportStone', icon: '💎', name: 'Камень телепортации', price: 50, description: 'Работает как телепорт', type: 'consumable'},
+    {id: 'foodPack', icon: '🍖', name: 'Пак еды', price: 50, description: '+5 еды', type: 'consumable'},
+    {id: 'swordPack', icon: '⚔️', name: 'Пак мечей', price: 200, description: '+5 мечей', type: 'consumable'},
+    {id: 'hunterMark', icon: '🎯', name: 'Метка охотника', price: 300, description: 'Показывает всех монстров в радиусе 15 блоков сквозь туман войны', type: 'consumable'}
+  ],
+  armor: [
+    {id: 'ironArmor', icon: '🛡️', name: 'Железная броня', price: 500, description: '+1 HP перманентно', type: 'armor'},
+    {id: 'warmBoots', icon: '🥾', name: 'Теплые сапоги', price: 300, description: 'Снижают штраф за передвижение по зиме до -1 еды', type: 'armor'},
+    {id: 'holyHelmet', icon: '⛑️', name: 'Шлем святого', price: 500, description: 'Активируется в инвентаре - восстанавливает все здоровье (1 раз за игру)', type: 'armor'}
+  ],
+  weapons: [
+    {id: 'sword', icon: '⚔️', name: 'Меч', price: 500, description: 'Добавляет 5 мечей при клике (1 раз за игру)', type: 'weapon'},
+    {id: 'mace', icon: '🔨', name: 'Булава', price: 400, description: 'Для убийства скелетов требуется 1 меч', type: 'weapon'},
+    {id: 'wolfBow', icon: '🏹', name: 'Волчий лук', price: 1000, description: 'С волков добывается в 2 раза больше еды', type: 'weapon'}
+  ]
+};
 
 let selectedShopItem = null;
 let currentShopTab = 'characters'; // 'characters' или 'upgrades'
@@ -3745,8 +5293,16 @@ function updateShop(){
   container.innerHTML = '';
   
   if(currentShopTab === 'characters'){
-    // Показываем персонажей
+    // Показываем персонажей с простой линией между обычными и секретными
     SHOP_ITEMS.forEach((item, index) => {
+      // Добавляем линию перед первым секретным персонажем
+      if(item.secret && index > 0 && !SHOP_ITEMS[index - 1].secret){
+        const divider = document.createElement('div');
+        divider.className = 'shopDivider';
+        divider.innerHTML = '<hr style="border:1px solid rgba(255,255,255,0.2);margin:20px 0">';
+        container.appendChild(divider);
+      }
+      
       const div = document.createElement('div');
       div.className = 'item';
       
@@ -3776,36 +5332,341 @@ function updateShop(){
       div.onclick = () => selectShopItem(item);
       container.appendChild(div);
     });
-  } else {
+  } else if(currentShopTab === 'upgrades') {
     // Показываем улучшения
     SHOP_UPGRADES.forEach((upgrade) => {
       const div = document.createElement('div');
       div.className = 'item';
       
-      const isOwned = state.upgrades.includes(upgrade.id);
+      // Для обычных улучшений (без уровней)
+      if(!upgrade.maxLevel){
+        const isOwned = state.upgrades.includes(upgrade.id);
+        const isSelected = selectedShopItem && selectedShopItem.id === upgrade.id;
+        if(isOwned) div.classList.add('owned');
+        if(isSelected) div.classList.add('selected');
+        
+        div.innerHTML = `
+          <div class="icon">${upgrade.icon}</div>
+          <div class="itemName">${upgrade.name}</div>
+          <div class="description">${upgrade.description}</div>
+          <div class="price">${upgrade.price + ' 🪙'}</div>
+          ${isOwned ? '<div class="status">✓ Куплено</div>' : ''}
+        `;
+        
+        div.onclick = () => selectShopUpgrade(upgrade);
+        container.appendChild(div);
+        return;
+      }
       
-      if(isOwned) div.classList.add('owned');
+      // Для многоуровневых улучшений
+      const currentLevel = getUpgradeLevel(upgrade.id);
+      const isMaxLevel = currentLevel >= upgrade.maxLevel;
+      const currentPrice = getUpgradePrice(upgrade.id, upgrade.price);
+      const isSelected = selectedShopItem && selectedShopItem.id === upgrade.id;
+      
+      if(currentLevel > 0) div.classList.add('owned');
+      if(isSelected) div.classList.add('selected');
+      
+      // Создаем звездочки для отображения прогресса
+      let starsHtml = '<div class="stars">';
+      for(let i = 1; i <= upgrade.maxLevel; i++) {
+        const starClass = i <= currentLevel ? 'star-filled' : 'star-empty';
+        starsHtml += `<span class="${starClass}">⭐</span>`;
+      }
+      starsHtml += '</div>';
       
       div.innerHTML = `
         <div class="icon">${upgrade.icon}</div>
-        <div class="itemName">${upgrade.name}</div>
+        <div class="itemName">${upgrade.name} (Ур. ${currentLevel}/${upgrade.maxLevel})</div>
         <div class="description">${upgrade.description}</div>
-        <div class="price">${upgrade.price + ' 🪙'}</div>
-        ${isOwned ? '<div class="status">✓ Куплено</div>' : ''}
+        <div class="price">${isMaxLevel ? 'МАКС' : currentPrice + ' 🪙'}</div>
+        ${starsHtml}
+        ${isMaxLevel ? '<div class="status">✓ Макс уровень</div>' : ''}
       `;
       
       div.onclick = () => selectShopUpgrade(upgrade);
       container.appendChild(div);
     });
+  } else if(currentShopTab === 'items') {
+    // Показываем предметы по категориям
+    renderShopItems();
   }
   
   updateShopButton();
 }
 
+// Функция для отображения предметов в магазине
+function renderShopItems(){
+  const container = document.getElementById('shopItems');
+  container.innerHTML = '';
+  
+  // Показываем инвентарь игрока в стиле игрового интерфейса
+  const inventoryDiv = document.createElement('div');
+  inventoryDiv.className = 'itemCategory';
+  inventoryDiv.innerHTML = '<h3>🎒 Ваш инвентарь</h3><div class="inventorySlots" id="shopInventorySlots"></div>';
+  container.appendChild(inventoryDiv);
+  
+  // Заполняем инвентарь в стиле игры
+  const shopInventorySlots = document.getElementById('shopInventorySlots');
+  shopInventorySlots.style.display = 'flex';
+  shopInventorySlots.style.flexDirection = 'row';
+  shopInventorySlots.style.gap = '8px';
+  shopInventorySlots.style.justifyContent = 'center';
+  shopInventorySlots.style.alignItems = 'center';
+  shopInventorySlots.style.flexWrap = 'nowrap';
+  
+  for(let i = 0; i < state.inventorySlots; i++){
+    const slot = document.createElement('div');
+    slot.className = 'slot';
+    slot.style.width = '60px';
+    slot.style.height = '60px';
+    slot.style.background = 'rgba(0,0,0,0.7)';
+    slot.style.border = '2px solid #666';
+    slot.style.borderRadius = '8px';
+    slot.style.display = 'flex';
+    slot.style.alignItems = 'center';
+    slot.style.justifyContent = 'center';
+    slot.style.cursor = 'pointer';
+    slot.style.transition = 'all 0.3s';
+    slot.style.position = 'relative';
+    
+    const item = state.inventory[i];
+    if(item){
+      const itemData = getItemData(item.id);
+      if(itemData){
+        // Для брони и оружия показываем только экипированные предметы
+        if(itemData.type === 'armor' || itemData.type === 'weapon'){
+          const isEquipped = (itemData.type === 'armor' && state.equippedArmor === item.id) ||
+                            (itemData.type === 'weapon' && state.equippedWeapon === item.id);
+          
+          if(isEquipped) {
+            slot.style.borderColor = '#4ade80';
+            slot.style.background = 'rgba(74,222,128,0.2)';
+            
+            // Проверяем, использован ли меч
+            if(itemData.type === 'weapon' && itemData.id === 'sword' && state.swordUsed){
+              slot.style.opacity = '0.5'; // Делаем прозрачным
+            }
+            
+            slot.innerHTML = `
+              <div style="font-size:24px">${itemData.icon}</div>
+            `;
+          } else {
+            // Неэкипированная броня/оружие не показывается в инвентаре
+            slot.innerHTML = '<div style="font-size:20px;opacity:0.3">📦</div>';
+          }
+        } else {
+          // Расходные материалы показываются всегда
+          slot.innerHTML = `
+            <div style="font-size:24px">${itemData.icon}</div>
+          `;
+        }
+        
+        // Добавляем кнопку продажи для расходных материалов
+        if(itemData.type === 'consumable'){
+          const sellBtn = document.createElement('button');
+          sellBtn.innerHTML = '💰';
+          sellBtn.style.position = 'absolute';
+          sellBtn.style.top = '-8px';
+          sellBtn.style.right = '-8px';
+          sellBtn.style.background = '#ff6b6b';
+          sellBtn.style.color = 'white';
+          sellBtn.style.border = 'none';
+          sellBtn.style.borderRadius = '50%';
+          sellBtn.style.width = '20px';
+          sellBtn.style.height = '20px';
+          sellBtn.style.fontSize = '10px';
+          sellBtn.style.cursor = 'pointer';
+          sellBtn.onclick = (e) => {
+            e.stopPropagation();
+            sellSingleItem(item.id);
+          };
+          slot.appendChild(sellBtn);
+        }
+      }
+    } else {
+      slot.innerHTML = '<div style="font-size:20px;opacity:0.3">📦</div>';
+    }
+    
+    shopInventorySlots.appendChild(slot);
+  }
+  
+  // Добавляем разделитель
+  const divider = document.createElement('div');
+  divider.className = 'shopDivider';
+  divider.innerHTML = '<hr style="border:1px solid rgba(255,255,255,0.2);margin:20px 0">';
+  container.appendChild(divider);
+  
+  // Показываем предметы в сетке как персонажи, разделенные по типам
+  
+  // Расходные материалы
+  SHOP_ITEMS_DATA.consumables.forEach(item => {
+    const ownedCount = getItemCount(item.id);
+    const isSelected = selectedShopItem && selectedShopItem.id === item.id;
+    const div = document.createElement('div');
+    div.className = 'item';
+    if(ownedCount > 0) div.classList.add('owned');
+    if(isSelected) div.classList.add('selected');
+    
+    div.innerHTML = `
+      <div class="icon">${item.icon}</div>
+      <div class="itemName">${item.name}</div>
+      <div class="description">${item.description}</div>
+      <div class="price">${item.price} 🪙</div>
+      ${ownedCount > 0 ? `<div class="ownedCount">${ownedCount}</div>` : ''}
+    `;
+    
+    div.onclick = () => selectShopItem(item);
+    container.appendChild(div);
+  });
+  
+  // Разделитель между расходниками и броней
+  const consumablesArmorDivider = document.createElement('div');
+  consumablesArmorDivider.className = 'shopDivider';
+  consumablesArmorDivider.innerHTML = '<hr style="border:1px solid rgba(255,255,255,0.2);margin:20px 0">';
+  container.appendChild(consumablesArmorDivider);
+  
+  // Броня
+  SHOP_ITEMS_DATA.armor.forEach(item => {
+    const isOwned = hasItem(item.id);
+    const isEquipped = state.equippedArmor === item.id;
+    const isSelected = selectedShopItem && selectedShopItem.id === item.id;
+    const div = document.createElement('div');
+    div.className = 'item';
+    if(isOwned) div.classList.add('owned');
+    if(isEquipped) div.classList.add('equipped');
+    if(isSelected) div.classList.add('selected');
+    
+    div.innerHTML = `
+      <div class="icon">${item.icon}</div>
+      <div class="itemName">${item.name}</div>
+      <div class="description">${item.description}</div>
+      <div class="price">${item.price} 🪙</div>
+      ${isEquipped ? '<div class="status">✓ Надето</div>' : (isOwned ? '<div class="status">✓ Куплено</div>' : '')}
+      ${item.id === 'holyHelmet' && isEquipped && state.holyHelmetUsed ? '<div class="status" style="color:#ff6b6b">⚠️ Использован</div>' : ''}
+    `;
+    
+    div.onclick = () => selectShopItem(item);
+    container.appendChild(div);
+  });
+  
+  // Разделитель между броней и оружием
+  const armorWeaponDivider = document.createElement('div');
+  armorWeaponDivider.className = 'shopDivider';
+  armorWeaponDivider.innerHTML = '<hr style="border:1px solid rgba(255,255,255,0.2);margin:20px 0">';
+  container.appendChild(armorWeaponDivider);
+  
+  // Оружие
+  SHOP_ITEMS_DATA.weapons.forEach(item => {
+    const isOwned = hasItem(item.id);
+    const isEquipped = state.equippedWeapon === item.id;
+    const isSelected = selectedShopItem && selectedShopItem.id === item.id;
+    const div = document.createElement('div');
+    div.className = 'item';
+    if(isOwned) div.classList.add('owned');
+    if(isEquipped) div.classList.add('equipped');
+    if(isSelected) div.classList.add('selected');
+    
+    div.innerHTML = `
+      <div class="icon">${item.icon}</div>
+      <div class="itemName">${item.name}</div>
+      <div class="description">${item.description}</div>
+      <div class="price">${item.price} 🪙</div>
+      ${isEquipped ? '<div class="status">✓ Надето</div>' : (isOwned ? '<div class="status">✓ Куплено</div>' : '')}
+    `;
+    
+    div.onclick = () => selectShopItem(item);
+    container.appendChild(div);
+  });
+}
+
+// Функция для продажи одного предмета
+function sellSingleItem(itemId){
+  const itemData = getItemData(itemId);
+  if(!itemData || itemData.type !== 'consumable') return;
+  
+  const itemCount = getItemCount(itemId);
+  if(itemCount === 0) return;
+  
+  const sellPrice = Math.floor(itemData.price * 0.3);
+  
+  if(confirm(`Продать ${itemData.name} за ${sellPrice} 🪙?`)){
+    state.coins += sellPrice;
+    removeItem(itemId, 1); // Продаем только один предмет
+    showNotification(`💰 Продано на ${sellPrice} 🪙!`, true);
+    updateShop();
+    updateInventory(); // Обновляем инвентарь в игре
+    updateHud(); // Обновляем HUD
+  }
+}
+
+// Вспомогательные функции для работы с предметами
+function hasItem(itemId) {
+  const itemData = getItemData(itemId);
+  if(!itemData) return false;
+  
+  if(itemData.type === 'armor'){
+    return state.ownedArmor.includes(itemId);
+  } else if(itemData.type === 'weapon'){
+    return state.ownedWeapons.includes(itemId);
+  } else {
+    // Для расходных материалов проверяем инвентарь
+    return state.inventory.some(item => item.id === itemId);
+  }
+}
+
+function getItemCount(itemId) {
+  // Считаем количество предметов данного типа в инвентаре
+  return state.inventory.filter(item => item.id === itemId).length;
+}
+
+function addItem(itemId, count = 1) {
+  // Проверяем, есть ли свободные слоты
+  const freeSlots = state.inventorySlots - state.inventory.length;
+  if (freeSlots < count) {
+    showNotification('❌ Недостаточно места в инвентаре!', false);
+    return false;
+  }
+  
+  // Добавляем каждый предмет в отдельный слот
+  for (let i = 0; i < count; i++) {
+    state.inventory.push({ id: itemId, count: 1 });
+  }
+  saveInventory();
+  return true;
+}
+
+function removeItem(itemId, count = 1) {
+  // Находим и удаляем указанное количество предметов
+  let removedCount = 0;
+  for (let i = state.inventory.length - 1; i >= 0 && removedCount < count; i--) {
+    if (state.inventory[i].id === itemId) {
+      state.inventory.splice(i, 1);
+      removedCount++;
+    }
+  }
+  saveInventory();
+}
+
+function saveInventory() {
+  localStorage.setItem('hex-inventory', JSON.stringify(state.inventory));
+  localStorage.setItem('hex-equipped-armor', state.equippedArmor);
+  localStorage.setItem('hex-equipped-weapon', state.equippedWeapon);
+  localStorage.setItem('hex-inventory-slots', state.inventorySlots.toString());
+  localStorage.setItem('hex-owned-armor', JSON.stringify(state.ownedArmor));
+  localStorage.setItem('hex-owned-weapons', JSON.stringify(state.ownedWeapons));
+}
+
 function selectShopItem(item){
   playSound('click');
   selectedShopItem = item;
-  currentShopTab = 'characters';
+  
+  // Определяем тип предмета
+  if (item.type) {
+    currentShopTab = 'items';
+  } else {
+    currentShopTab = 'characters';
+  }
   
   // Если это заблокированный секретный персонаж, сразу показываем условия
   const isSecretUnlocked = item.secret ? state.unlockedSecrets.includes(item.unlockCondition) : true;
@@ -3836,12 +5697,62 @@ function updateShopButton(){
   
   // Логика для улучшений
   if(currentShopTab === 'upgrades'){
-    const isOwned = state.upgrades.includes(selectedShopItem.id);
     btn.onclick = purchaseUpgrade;
     
-    if(isOwned){
+    // Для обычных улучшений (без уровней)
+    if(!selectedShopItem.maxLevel){
+      const isOwned = state.upgrades.includes(selectedShopItem.id);
+      
+      if(isOwned){
+        btn.disabled = true;
+        btn.textContent = '✓ Куплено';
+      } else if(state.coins >= selectedShopItem.price){
+        btn.disabled = false;
+        btn.textContent = `Купить за ${selectedShopItem.price} 🪙`;
+      } else {
+        btn.disabled = true;
+        btn.textContent = `Недостаточно монет (${selectedShopItem.price} 🪙)`;
+      }
+      return;
+    }
+    
+    // Для многоуровневых улучшений
+    const currentLevel = getUpgradeLevel(selectedShopItem.id);
+    const isMaxLevel = currentLevel >= selectedShopItem.maxLevel;
+    const currentPrice = getUpgradePrice(selectedShopItem.id, selectedShopItem.price);
+    
+    if(isMaxLevel){
       btn.disabled = true;
-      btn.textContent = 'Уже куплено';
+      btn.textContent = 'Максимальный уровень';
+    } else if(state.coins >= currentPrice){
+      btn.disabled = false;
+      btn.textContent = `Купить за ${currentPrice} 🪙`;
+    } else {
+      btn.disabled = true;
+      btn.textContent = `Недостаточно монет (${currentPrice} 🪙)`;
+    }
+    return;
+  }
+  
+  // Логика для предметов
+  if(currentShopTab === 'items'){
+    btn.onclick = purchaseItem;
+    
+    const isOwned = hasItem(selectedShopItem.id);
+    const isEquipped = (selectedShopItem.type === 'armor' && state.equippedArmor === selectedShopItem.id) ||
+                      (selectedShopItem.type === 'weapon' && state.equippedWeapon === selectedShopItem.id);
+    
+    if(isOwned && selectedShopItem.type === 'consumable'){
+      btn.disabled = false;
+      btn.textContent = `Купить еще за ${selectedShopItem.price} 🪙`;
+    } else if(isOwned && (selectedShopItem.type === 'armor' || selectedShopItem.type === 'weapon')){
+      if(isEquipped){
+        btn.disabled = false;
+        btn.textContent = 'Снять';
+      } else {
+        btn.disabled = false;
+        btn.textContent = 'Надеть';
+      }
     } else if(state.coins >= selectedShopItem.price){
       btn.disabled = false;
       btn.textContent = `Купить за ${selectedShopItem.price} 🪙`;
@@ -3883,6 +5794,104 @@ function updateShopButton(){
   }
 }
 
+// Функция для покупки предметов
+function purchaseItem(){
+  if(!selectedShopItem) return;
+  
+  const isOwned = hasItem(selectedShopItem.id);
+  const isEquipped = (selectedShopItem.type === 'armor' && state.equippedArmor === selectedShopItem.id) ||
+                    (selectedShopItem.type === 'weapon' && state.equippedWeapon === selectedShopItem.id);
+  
+  // Если это расходный материал и он уже есть - покупаем еще
+  if(isOwned && selectedShopItem.type === 'consumable'){
+    if(state.coins >= selectedShopItem.price){
+      state.coins -= selectedShopItem.price;
+      if(addItem(selectedShopItem.id, 1)){ // Проверяем успешность добавления
+        playSound('coin');
+        updateShop();
+        updateShopButton();
+      } else {
+        // Если не удалось добавить (нет места), возвращаем деньги
+        state.coins += selectedShopItem.price;
+      }
+    }
+    return;
+  }
+  
+  // Если это броня или оружие и они уже есть - переключаем экипировку
+  if(isOwned && (selectedShopItem.type === 'armor' || selectedShopItem.type === 'weapon')){
+    if(isEquipped){
+      // Снимаем - удаляем из инвентаря, но предмет остается купленным
+      if(selectedShopItem.type === 'armor'){
+        state.equippedArmor = null;
+        removeItem(selectedShopItem.id, 1);
+      } else if(selectedShopItem.type === 'weapon'){
+        state.equippedWeapon = null;
+        removeItem(selectedShopItem.id, 1);
+      }
+    } else {
+      // Надеваем - добавляем в инвентарь
+      if(selectedShopItem.type === 'armor'){
+        state.equippedArmor = selectedShopItem.id;
+        addItem(selectedShopItem.id, 1);
+      } else if(selectedShopItem.type === 'weapon'){
+        state.equippedWeapon = selectedShopItem.id;
+        addItem(selectedShopItem.id, 1);
+      }
+    }
+    saveInventory();
+    updateShop();
+    updateShopButton();
+    return;
+  }
+  
+  // Покупка нового предмета
+  if(state.coins >= selectedShopItem.price){
+    state.coins -= selectedShopItem.price;
+    
+    // Добавляем в список купленных предметов
+    if(selectedShopItem.type === 'armor'){
+      if(!state.ownedArmor.includes(selectedShopItem.id)){
+        state.ownedArmor.push(selectedShopItem.id);
+      }
+      state.equippedArmor = selectedShopItem.id;
+      // Добавляем в инвентарь
+      if(addItem(selectedShopItem.id, 1)){
+        saveInventory();
+        playSound('coin');
+        updateShop();
+        updateShopButton();
+      } else {
+        state.coins += selectedShopItem.price; // Возвращаем деньги
+      }
+    } else if(selectedShopItem.type === 'weapon'){
+      if(!state.ownedWeapons.includes(selectedShopItem.id)){
+        state.ownedWeapons.push(selectedShopItem.id);
+      }
+      state.equippedWeapon = selectedShopItem.id;
+      // Добавляем в инвентарь
+      if(addItem(selectedShopItem.id, 1)){
+        saveInventory();
+        playSound('coin');
+        updateShop();
+        updateShopButton();
+      } else {
+        state.coins += selectedShopItem.price; // Возвращаем деньги
+      }
+    } else {
+      // Расходные материалы
+      if(addItem(selectedShopItem.id, 1)){
+        saveInventory();
+        playSound('coin');
+        updateShop();
+        updateShopButton();
+      } else {
+        state.coins += selectedShopItem.price; // Возвращаем деньги
+      }
+    }
+  }
+}
+
 function showSecretUnlockConditions(item){
   let conditionText = '';
   
@@ -3890,8 +5899,8 @@ function showSecretUnlockConditions(item){
     conditionText = 'Соберите 150 монет за одну игру';
   } else if(item.unlockCondition === 'monsters35'){
     conditionText = 'Убейте 35 врагов за одну игру';
-  } else if(item.unlockCondition === 'score400'){
-    conditionText = 'Наберите 400+ очков в одной игре';
+  } else if(item.unlockCondition === 'score666'){
+    conditionText = 'Наберите 666+ очков в одной игре';
   }
   
   alert(`🔓 Условие разблокировки:\n\n${conditionText}\n\nПосле выполнения условия персонаж автоматически разблокируется!`);
@@ -3913,6 +5922,9 @@ function purchaseOrSelectItem(){
     // Просто выбираем
     state.playerIcon = selectedShopItem.icon;
     localStorage.setItem('hex-player-icon', state.playerIcon);
+    // Обновляем слоты инвентаря при смене персонажа
+    state.inventorySlots = getStartInventorySlots();
+    localStorage.setItem('hex-inventory-slots', state.inventorySlots.toString());
     updateShop();
   } else {
     // Покупаем (только обычных персонажей)
@@ -3922,9 +5934,13 @@ function purchaseOrSelectItem(){
         state.ownedIcons.push(selectedShopItem.icon);
         state.playerIcon = selectedShopItem.icon;
         
+        // Обновляем слоты инвентаря при покупке персонажа
+        state.inventorySlots = getStartInventorySlots();
+        
         localStorage.setItem('hex-coins', state.coins);
         localStorage.setItem('hex-owned-icons', JSON.stringify(state.ownedIcons));
         localStorage.setItem('hex-player-icon', state.playerIcon);
+        localStorage.setItem('hex-inventory-slots', state.inventorySlots.toString());
         
         // Проверяем достижение "все персонажи"
         checkAchievement('allCharacters');
@@ -3975,15 +5991,51 @@ document.getElementById('openEncyclopediaInGame').onclick = () => {
 function purchaseUpgrade(){
   if(!selectedShopItem || currentShopTab !== 'upgrades') return;
   
-  const isOwned = state.upgrades.includes(selectedShopItem.id);
+  // Для обычных улучшений (без уровней)
+  if(!selectedShopItem.maxLevel){
+    const isOwned = state.upgrades.includes(selectedShopItem.id);
+    if(!isOwned && state.coins >= selectedShopItem.price){
+      if(confirm(`Купить ${selectedShopItem.name} за ${selectedShopItem.price} 🪙?`)){
+        state.coins -= selectedShopItem.price;
+        state.upgrades.push(selectedShopItem.id);
+        
+        localStorage.setItem('hex-coins', state.coins);
+        localStorage.setItem('hex-upgrades', JSON.stringify(state.upgrades));
+        
+        updateShop();
+      }
+    }
+    return;
+  }
   
-  if(!isOwned && state.coins >= selectedShopItem.price){
-    if(confirm(`Купить ${selectedShopItem.name} за ${selectedShopItem.price} 🪙?`)){
-      state.coins -= selectedShopItem.price;
-      state.upgrades.push(selectedShopItem.id);
+  // Для многоуровневых улучшений
+  const currentLevel = getUpgradeLevel(selectedShopItem.id);
+  const isMaxLevel = currentLevel >= selectedShopItem.maxLevel;
+  
+  const currentPrice = getUpgradePrice(selectedShopItem.id, selectedShopItem.price);
+  
+  if(!isMaxLevel && state.coins >= currentPrice){
+    const nextLevel = currentLevel + 1;
+    const upgradeId = `${selectedShopItem.id}_${nextLevel}`;
+    
+    if(confirm(`Купить ${selectedShopItem.name} (уровень ${nextLevel}/${selectedShopItem.maxLevel}) за ${currentPrice} 🪙?`)){
+      state.coins -= currentPrice;
+      state.upgrades.push(upgradeId);
+      
+      
+      // Специальная обработка для слотов инвентаря
+      if(selectedShopItem.id === 'inventorySlots'){
+        state.inventorySlots = nextLevel + 1; // +1 потому что начинаем с 1 слота
+        saveInventory();
+      }
       
       localStorage.setItem('hex-coins', state.coins);
       localStorage.setItem('hex-upgrades', JSON.stringify(state.upgrades));
+      
+      // Принудительно обновляем область видимости после покупки улучшения радиуса обзора
+      if(selectedShopItem.id === 'visionRange'){
+        revealNeighbors(state.player.q, state.player.r);
+      }
       
       updateShop();
     }
@@ -3994,8 +6046,10 @@ document.getElementById('tabCharacters').onclick = () => {
   playSound('click');
   currentShopTab = 'characters';
   selectedShopItem = null;
-  document.getElementById('tabCharacters').classList.add('active');
+  document.getElementById('tabCharacters').classList.remove('active');
   document.getElementById('tabUpgrades').classList.remove('active');
+  document.getElementById('tabItems').classList.remove('active');
+  document.getElementById('tabCharacters').classList.add('active');
   updateShop();
 };
 
@@ -4004,7 +6058,20 @@ document.getElementById('tabUpgrades').onclick = () => {
   currentShopTab = 'upgrades';
   selectedShopItem = null;
   document.getElementById('tabCharacters').classList.remove('active');
+  document.getElementById('tabUpgrades').classList.remove('active');
+  document.getElementById('tabItems').classList.remove('active');
   document.getElementById('tabUpgrades').classList.add('active');
+  updateShop();
+};
+
+document.getElementById('tabItems').onclick = () => {
+  playSound('click');
+  currentShopTab = 'items';
+  selectedShopItem = null;
+  document.getElementById('tabCharacters').classList.remove('active');
+  document.getElementById('tabUpgrades').classList.remove('active');
+  document.getElementById('tabItems').classList.remove('active');
+  document.getElementById('tabItems').classList.add('active');
   updateShop();
 };
 
@@ -4062,18 +6129,25 @@ document.getElementById('backToMenu').onclick = () => {
 };
 
 document.getElementById('resetProgressBtn').onclick = () => {
-  if(confirm('Вы уверены, что хотите сбросить весь прогресс? (монеты, рекорд, купленные иконки, таблица лидеров, достижения, секретные персонажи, улучшения)')){
+  if(confirm('Вы уверены, что хотите сбросить весь прогресс? (монеты, рекорд, купленные иконки, таблица лидеров, достижения, секретные персонажи, улучшения, инвентарь)')){
     state.best = 0;
     state.coins = 0;
-    state.playerIcon = '🧙';
-    state.ownedIcons = ['🧙'];
+    state.playerIcon = '🧙‍♂️';
+    state.ownedIcons = ['🧙‍♂️'];
     state.playerName = '';
     state.leaderboard = [...DEFAULT_LEADERBOARD]; // Восстанавливаем начальную таблицу
     state.achievements = []; // Очищаем достижения
     state.unlockedSecrets = []; // Очищаем секретные персонажи
     state.upgrades = []; // Очищаем улучшения
+    state.inventory = []; // Очищаем инвентарь
+    state.equippedArmor = null; // Снимаем броню
+    state.equippedWeapon = null; // Снимаем оружие
+    state.inventorySlots = 1; // Сбрасываем слоты инвентаря до 1
+    state.ownedArmor = []; // Очищаем купленную броню
+    state.ownedWeapons = []; // Очищаем купленное оружие
     
     localStorage.setItem('hex-best', 0);
+    localStorage.setItem('hex-best-icon', '');
     localStorage.setItem('hex-coins', 0);
     localStorage.setItem('hex-player-icon', '🧙');
     localStorage.setItem('hex-owned-icons', JSON.stringify(['🧙']));
@@ -4082,6 +6156,12 @@ document.getElementById('resetProgressBtn').onclick = () => {
     localStorage.setItem('hex-achievements', JSON.stringify([]));
     localStorage.setItem('hex-unlocked-secrets', JSON.stringify([]));
     localStorage.setItem('hex-upgrades', JSON.stringify([]));
+    localStorage.setItem('hex-inventory', JSON.stringify([]));
+    localStorage.setItem('hex-equipped-armor', '');
+    localStorage.setItem('hex-equipped-weapon', '');
+    localStorage.setItem('hex-inventory-slots', '1');
+    localStorage.setItem('hex-owned-armor', JSON.stringify([]));
+    localStorage.setItem('hex-owned-weapons', JSON.stringify([]));
     
     updateMenuStats();
     alert('Прогресс сброшен!');
@@ -4098,7 +6178,7 @@ document.getElementById('backToMenuFromOver').onclick = () => {
 // Developer mode cheats
 document.getElementById('cheatHp').onclick = () => {
   if(state.devMode && !state.over){
-    state.hp = Math.min(getMaxHP(), state.hp + 1);
+    healHp(1);
     updateHud();
     showNotification('🔧 DEV: +1 здоровье', null);
   }
@@ -4122,17 +6202,25 @@ document.getElementById('cheatFood').onclick = () => {
 
 document.getElementById('cheatCoins').onclick = () => {
   if(state.devMode && !state.over){
-    state.coinsInGame += 10;
+    state.coinsInGame += 100;
     updateHud();
-    showNotification('🔧 DEV: +10 монет', null);
+    showNotification('🔧 DEV: +100 монет', null);
+  }
+};
+
+document.getElementById('cheatCoins1000').onclick = () => {
+  if(state.devMode && !state.over){
+    state.coinsInGame += 1000;
+    updateHud();
+    showNotification('🔧 DEV: +1000 монет', null);
   }
 };
 
 document.getElementById('cheatScore').onclick = () => {
   if(state.devMode && !state.over){
-    addScore(20);
+    addScore(100);
     updateHud();
-    showNotification('🔧 DEV: +20 очков', null);
+    showNotification('🔧 DEV: +100 очков', null);
   }
 };
 
@@ -4150,8 +6238,12 @@ window.addEventListener('resize', ()=>{ fitCanvas(); resize(); });
 fitCanvas();
 resize();
 
-// Добавляем звук клика на все кнопки
+// Добавляем звук клика на все кнопки и инициализируем слоты инвентаря
 document.addEventListener('DOMContentLoaded', () => {
+  // Инициализируем слоты инвентаря при загрузке страницы
+  state.inventorySlots = getStartInventorySlots();
+  localStorage.setItem('hex-inventory-slots', state.inventorySlots.toString());
+  
   document.querySelectorAll('button').forEach(btn => {
     btn.addEventListener('click', () => {
       playSound('click');
