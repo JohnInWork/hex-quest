@@ -1,44 +1,46 @@
+**English** · [Русский](README.ru.md)
+
 # Hex Quest
 
-Пошаговое исследование бесконечной гексагональной карты. Всё поле закрыто туманом; каждый клик открывает соседнюю клетку и сразу разыгрывает то, что под ней. Задача — набрать как можно больше очков, пока не кончились здоровье и еда.
+Turn-based exploration of an endless hex map. The whole board is hidden under fog; every click reveals one neighbouring tile and immediately plays out whatever sits under it. The goal is to score as much as you can before health and food run out.
 
 ![Hex Quest](screenshots/gameplay.png)
 
-## Правила
+## Rules
 
-Три ресурса: **здоровье** (6 сердец, восстановить нельзя), **еда** и **мечи**. Еда убывает каждый ход — стоять на месте не выйдет.
+Three resources: **health** (6 hearts, never restored), **food** and **swords**. Food drains every turn, so standing still isn't an option.
 
-| Клетка | Что делает |
+| Tile | What it does |
 |---|---|
-| Трава, песок | Переход, +1 очко; в песке иногда попадаются самоцветы |
-| Пустыня, снег | +2 и +3 очка, но снег стоит еды |
-| Вода | Непроходима, только открывается |
-| Лес, кактус, гора | Очки за счёт еды: +2, +2, +3 |
-| Дом | +4 еды, одноразово |
-| Замок | +1 меч |
-| Волк, тигр, череп, дракон | Бой мечами: чем опаснее враг, тем больше очков и риск |
-| Монета, сундук, маяк, портал | Монеты, редкая крупная награда, телепорт |
+| Grass, sand | Move in, +1 point; sand sometimes hides gems |
+| Desert, snow | +2 and +3 points, but snow costs food |
+| Water | Impassable, only revealed |
+| Forest, cactus, mountain | Points paid for with food: +2, +2, +3 |
+| House | +4 food, once |
+| Castle | +1 sword |
+| Wolf, tiger, skull, dragon | Fought with swords: the nastier the enemy, the bigger the reward and the risk |
+| Coin, chest, beacon, portal | Coins, a rare big payout, teleport |
 
-Очки за клетку дают один раз — это заставляет всё время идти в новое, а не топтаться по открытому. Ходить можно только на соседей уже открытых клеток.
+Points are awarded per tile only once, which keeps you pushing into new ground instead of pacing over what's already open. You can only move onto neighbours of tiles you've already revealed.
 
-## Что ещё внутри
+## What else is inside
 
-- **Карта 4000×4000** с ленивой генерацией: тайлы считаются по мере подхода, не рисуется весь мир сразу.
-- **Ландшафт вместо случайности** — лес и горы растут группами, вода собирается в озёра, снег и пустыня образуют биомы, а враги и постройки стоят поодиночке.
-- **Инвентарь и снаряжение** — карта, зелья, камень телепортации, паки еды и мечей, метка охотника, железная броня, тёплые сапоги, шлем святого, меч, булава, волчий лук. Одни расходуются, другие меняют правила, пока надеты.
-- **Прокачка между забегами** — за монеты растут слоты инвентаря, запас здоровья, стартовая еда и мечи.
-- **Море и его обитатели** — корабли, акулы, осьминог с отдельной сценой боя; феникс и бутылка с посланием как редкие находки.
-- **Задания** — «исследуйте 4 леса», «покорите 5 гор»; за выполнение растущая награда монетами.
-- **15 персонажей за монеты** — маг, берсерк, коллекционер, драконоборец, русалка, феникс, медведь, демон, вампир, робот, пришелец и другие; у каждого своя способность, меняющая правила.
-- Достижения, таблица лидеров, энциклопедия объектов, случайные события с выбором, режим с текстурами и без.
-- Музыка по умолчанию выключена, звуки включены — переключается кнопками в меню и в игре.
+- **A 4000×4000 map** with lazy generation: tiles are computed as you approach them, the world is never drawn all at once.
+- **Landscape instead of randomness** — forests and mountains grow in clusters, water gathers into lakes, snow and desert form biomes, while enemies and buildings stand alone.
+- **Inventory and gear** — a map, potions, a teleport stone, food and sword packs, a hunter's mark, iron armour, warm boots, a holy helmet, a sword, a mace, a wolf bow. Some are consumed, others change the rules while worn.
+- **Progression between runs** — coins buy more inventory slots, more health, more starting food and swords.
+- **The sea and what lives in it** — ships, sharks, an octopus with its own fight scene; a phoenix and a message in a bottle as rare finds.
+- **Quests** — "explore 4 forests", "conquer 5 mountains"; the coin reward grows as you complete them.
+- **15 playable characters** bought with coins — mage, berserker, collector, dragonslayer, mermaid, phoenix, bear, demon, vampire, robot, alien and more; each has an ability that bends the rules.
+- Achievements, a leaderboard, an encyclopedia of objects, random events with choices, and a textured or texture-free mode.
+- Music is off by default, sound effects are on — both toggle from the menu and in-game.
 
-## Запуск
+## Running it
 
-Открыть `Hexagons.html` в браузере. Звуки лежат в `Sounds/`, иконки — в `Icons/`.
+Open `Hexagons.html` in a browser. Sounds live in `Sounds/`, icons in `Icons/`.
 
-В папке `Versions/` — восемь предыдущих версий, от первого прототипа до текущей.
+`Versions/` holds eight earlier builds, from the first prototype to the current one.
 
-## Стек
+## Stack
 
-Один HTML-файл: canvas, чистый JS, без библиотек.
+A single HTML file: canvas, plain JS, no libraries.
