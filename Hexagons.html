@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
 <title>Hexagons</title>
 <style>
   :root{
@@ -16,20 +16,21 @@
     --hl:#ffd54a;
     --bad:#ff5a6a;
   }
-  html,body{height:100%;margin:0;background:var(--bg);color:var(--ui);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;overflow-x:hidden;}
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--ui);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;overflow-x:hidden;overscroll-behavior:none;}
+  body{height:100dvh;}
   /* Скрытие системного скроллбара */
   *{scrollbar-width:none;-ms-overflow-style:none;}
   *::-webkit-scrollbar{display:none;}
   #wrap{position:relative;height:100%;overflow:hidden;}
-  canvas{position:absolute;inset:0;display:block;touch-action:manipulation;cursor:pointer;}
+  canvas{position:absolute;inset:0;display:block;touch-action:none;cursor:pointer;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;}
   /* HUD */
-  .hud{position:absolute;left:8px;top:8px;display:flex;flex-direction:column;gap:8px;align-items:flex-start;z-index:2}
+  .hud{position:absolute;left:calc(8px + env(safe-area-inset-left));top:calc(8px + env(safe-area-inset-top));display:flex;flex-direction:column;gap:8px;align-items:flex-start;z-index:2}
   .meter{display:flex;align-items:center;gap:6px;background:rgba(0,0,0,.35);padding:6px 10px;border-radius:10px;backdrop-filter: blur(4px);}
   .meter b{font-weight:600}
   .meter .icons{display:flex;gap:4px}
   .icon{font-size:20px;line-height:1}
   .counter{min-width:24px;text-align:center;font-variant-numeric:tabular-nums}
-  #scoreBox{position:absolute;right:8px;top:8px;display:flex;flex-direction:column;gap:8px;z-index:2}
+  #scoreBox{position:absolute;right:calc(8px + env(safe-area-inset-right));top:calc(8px + env(safe-area-inset-top));display:flex;flex-direction:column;gap:8px;z-index:2}
   #scoreBox .card{background:rgba(0,0,0,.35);padding:8px 12px;border-radius:10px;backdrop-filter: blur(4px);min-width:120px;text-align:center;font-size:14px;font-weight:600}
   #questBox{position:absolute;bottom:60px;left:50%;transform:translateX(-50%);z-index:2;min-width:280px;max-width:400px}
   #questBox .questContent{background:rgba(0,0,0,.4);padding:10px 14px;border-radius:12px;backdrop-filter:blur(6px);display:flex;align-items:center;gap:10px;border:2px solid rgba(102,126,234,0.5);box-shadow:0 4px 12px rgba(0,0,0,.3)}
@@ -42,7 +43,7 @@
   #questBox .questProgressFill{height:100%;background:linear-gradient(90deg, #667eea 0%, #764ba2 100%);transition:width 0.3s ease}
   #questBox .questProgressText{font-size:11px;color:#ccc;min-width:40px}
   #questBox .questReward{font-size:16px;font-weight:700;color:#ffd700;white-space:nowrap}
-  #buttons{position:absolute;right:8px;bottom:8px;display:flex;gap:8px;z-index:2}
+  #buttons{position:absolute;right:8px;bottom:calc(8px + env(safe-area-inset-bottom));display:flex;gap:8px;z-index:2}
   button{background:#ffffff; border:0; color:#111; padding:10px 14px; border-radius:10px; font-weight:600}
   button:active{transform:translateY(1px)}
   /* Game over overlay */
@@ -79,17 +80,41 @@
     .counter{font-size:14px;min-width:20px}
     #scoreBox{right:4px;top:4px;gap:6px}
     #scoreBox .card{padding:6px 10px;font-size:14px;min-width:100px}
-    #questBox{bottom:50px;min-width:240px;max-width:calc(100vw - 16px)}
+    #questBox{bottom:calc(56px + env(safe-area-inset-bottom));min-width:240px;max-width:calc(100vw - 16px)}
     #questBox .questContent{padding:8px 10px;gap:8px}
     #questBox .questIcon{font-size:24px}
     #questBox .questTitle{font-size:10px}
     #questBox .questText{font-size:12px}
     #questBox .questProgressText{font-size:10px}
     #questBox .questReward{font-size:14px}
-    #buttons{right:4px;bottom:4px;gap:6px}
+    /* Нижняя панель: одна строка значков вместо переносящегося текста */
+    #buttons{right:calc(4px + env(safe-area-inset-right));left:auto;
+      bottom:calc(4px + env(safe-area-inset-bottom));gap:6px;flex-wrap:nowrap}
+    #buttons button{width:44px;height:44px;padding:0;font-size:0;line-height:1;
+      display:flex;align-items:center;justify-content:center}
+    #buttons button::before{content:attr(data-short);font-size:20px}
     button{padding:8px 12px;font-size:14px}
     #notifications{width:min(220px,calc(100vw - 16px));margin-top:120px;gap:4px}
     .notification{padding:6px 10px;font-size:11px;border-radius:6px}
+  }
+  /* Телефон в альбомной ориентации: по ширине это ещё "десктоп", но по высоте нет */
+  @media (max-height:500px){
+    .hud{gap:4px}
+    .meter{padding:3px 8px;gap:4px;border-radius:8px}
+    .icon{font-size:16px}
+    #scoreBox{gap:4px}
+    #scoreBox .card{padding:4px 10px;font-size:12px;min-width:90px}
+    #buttons{right:calc(4px + env(safe-area-inset-right));left:auto;
+      bottom:calc(4px + env(safe-area-inset-bottom));gap:6px;flex-wrap:nowrap}
+    #buttons button{width:40px;height:40px;padding:0;font-size:0;line-height:1;
+      display:flex;align-items:center;justify-content:center}
+    #buttons button::before{content:attr(data-short);font-size:18px}
+    #questBox{bottom:calc(50px + env(safe-area-inset-bottom));min-width:220px}
+    #questBox .questContent{padding:6px 10px;gap:8px}
+    #questBox .questIcon{font-size:20px}
+    #questBox .questText{font-size:12px}
+    #notifications{margin-top:96px;width:min(220px,40vw);max-height:calc(100dvh - 200px)}
+    .notification{padding:5px 9px;font-size:11px}
   }
   @media (max-width:400px){
     .hud{left:4px;top:4px;gap:4px}
@@ -97,7 +122,7 @@
     .icon{font-size:16px}
     .counter{font-size:12px}
     #scoreBox .card{padding:5px 8px;font-size:12px;min-width:90px}
-    #questBox{bottom:45px;min-width:200px}
+    #questBox{bottom:calc(52px + env(safe-area-inset-bottom));min-width:200px}
     #questBox .questContent{padding:6px 8px;gap:6px}
     #questBox .questIcon{font-size:20px}
     #questBox .questTitle{font-size:9px}
@@ -195,7 +220,7 @@
   .shopDivider{grid-column:1/-1}
   
   /* Инвентарь в игре */
-  #inventory{position:absolute;left:20px;top:50%;transform:translateY(-50%);z-index:10;display:none}
+  #inventory{position:absolute;left:calc(12px + env(safe-area-inset-left));top:50%;transform:translateY(-50%);z-index:2;display:none}
   #inventory .inventorySlots{display:flex;flex-direction:column;gap:8px}
   #inventory .slot{width:60px;height:60px;background:rgba(0,0,0,0.7);border:2px solid #666;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.3s;position:relative}
   #inventory .slot:hover{border-color:#ffd700;background:rgba(0,0,0,0.8)}
@@ -223,6 +248,16 @@
   #shopInventory .item{min-height:140px}
   #shopInventory .item button{margin-top:8px}
   
+  /* Правый стек кнопок над нижней панелью */
+  #soundButtons{position:absolute;right:calc(8px + env(safe-area-inset-right));
+    bottom:calc(60px + env(safe-area-inset-bottom));flex-direction:column;gap:6px;z-index:2;align-items:flex-end}
+  /* Кнопка возврата камеры к игроку: появляется, только когда камера уехала */
+  #recenterBtn{width:44px;height:44px;padding:0;display:none;align-items:center;justify-content:center;
+    font-size:20px;line-height:1;background:rgba(0,0,0,.45);color:#fff;
+    border:1px solid rgba(255,255,255,.25);border-radius:12px;backdrop-filter:blur(4px)}
+  #recenterBtn.visible{display:flex;animation:recenterIn .18s ease-out}
+  @keyframes recenterIn{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:scale(1)}}
+
   /* Hide game UI when not playing */
   .hideWhenNotPlaying{display:none}
   /* Event dialog */
@@ -446,6 +481,24 @@
     #eventDialog h2{font-size:22px}
     #eventDialog .message{font-size:14px;margin:12px 0}
     #eventDialog button{padding:10px;font-size:14px}
+  }
+
+  /* --- Мобильные правила, перебивающие базовые (должны идти последними) --- */
+  @media (max-width:640px){
+    #soundButtons{bottom:calc(56px + env(safe-area-inset-bottom))}
+    #inventory .slot{width:48px;height:48px}
+    #inventory .slot .itemIcon{font-size:20px}
+  }
+  @media (max-height:500px){
+    #soundButtons{bottom:calc(52px + env(safe-area-inset-bottom))}
+    #recenterBtn{width:40px;height:40px;font-size:18px}
+    /* в альбоме инвентарь уходит вниз строкой, чтобы не резать поле по вертикали */
+    #inventory{top:auto;bottom:calc(4px + env(safe-area-inset-bottom));transform:none}
+    #inventory .inventorySlots{flex-direction:row}
+    #inventory .slot{width:40px;height:40px}
+    #inventory .slot .itemIcon{font-size:18px}
+    /* уведомления не должны наезжать на правый стек кнопок */
+    #notifications{max-height:calc(100dvh - 280px)}
   }
 </style>
 </head>
@@ -818,14 +871,15 @@
   </div>
 
   <div id="buttons">
-    <button id="new">Новая карта</button>
-    <button id="openAchievementsInGame">🏅 Достижения</button>
-    <button id="openEncyclopediaInGame">📖 Энциклопедия</button>
-    <button id="backToMenu">В меню</button>
+    <button id="new" data-short="🗺" aria-label="Новая карта">Новая карта</button>
+    <button id="openAchievementsInGame" data-short="🏅" aria-label="Достижения">🏅 Достижения</button>
+    <button id="openEncyclopediaInGame" data-short="📖" aria-label="Энциклопедия">📖 Энциклопедия</button>
+    <button id="backToMenu" data-short="☰" aria-label="В меню">В меню</button>
   </div>
   
-  <!-- Кнопки звука отдельно -->
-  <div id="soundButtons" style="position:absolute;right:8px;bottom:52px;display:none;flex-direction:column;gap:6px;z-index:2">
+  <!-- Правый стек: возврат камеры к игроку + звук -->
+  <div id="soundButtons" style="display:none">
+    <button id="recenterBtn" onclick="recenterCamera()" title="К игроку" aria-label="Вернуть камеру к игроку">🎯</button>
     <button class="soundToggle" onclick="toggleSound()" style="padding:6px 10px;font-size:11px;background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.2);backdrop-filter:blur(4px);">🔊</button>
     <button class="musicToggle" onclick="toggleMusic()" style="padding:6px 10px;font-size:11px;background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.2);backdrop-filter:blur(4px);">🎵</button>
   </div>
@@ -1681,7 +1735,9 @@ const ACHIEVEMENTS = [
 ];
 
 const state = {
-  size: 28,            // радиус гекса (в пикселях)
+  size: 28,            // радиус гекса (в пикселях) = baseSize * zoom
+  baseSize: 28,        // базовый радиус гекса при zoom = 1
+  zoom: 1,             // масштаб камеры (пинч на телефоне, колесо на десктопе)
   camera: {x:0,y:0},   // позиция камеры (в пикселях)
   cameraOffset: {x:0,y:0}, // смещение камеры от игрока
   tiles: new Map(),    // хранилище тайлов (ключ: "q,r"), ленивая генерация
@@ -2094,8 +2150,91 @@ function resize(){
   canvas.height = Math.floor(canvas.clientHeight * dpr);
   ctx.setTransform(dpr,0,0,dpr,0,0);
 
-  state.size = 28;
+  state.baseSize = getBaseHexSize();
+  state.size = state.baseSize * state.zoom;
   draw();
+}
+
+/* ==========
+   КАМЕРА: масштаб и панорама (общие для мыши и пальца)
+   ========== */
+const ZOOM_MIN = 0.55, ZOOM_MAX = 2.6;
+
+// Базовый радиус гекса: на узком экране гексы крупнее, чтобы попадать пальцем
+function getBaseHexSize(){
+  const w = canvas.clientWidth || window.innerWidth;
+  const h = canvas.clientHeight || window.innerHeight;
+  const minSide = Math.min(w, h);
+  if(minSide <= 420) return 32;   // телефон
+  if(minSide <= 820) return 30;   // планшет
+  return 28;                       // десктоп
+}
+
+// Масштаб с якорем: точка под пальцем (курсором) остаётся на месте.
+// Экран = центр + (мировая точка - игрок) * size + offset, поэтому при
+// смене size достаточно пересчитать offset относительно якоря.
+function applyZoom(newZoom, anchorX, anchorY){
+  const z = clamp(newZoom, ZOOM_MIN, ZOOM_MAX);
+  if(Math.abs(z - state.zoom) < 0.0005) return false;
+  const ax = (anchorX === undefined ? canvas.clientWidth/2  : anchorX) - canvas.clientWidth/2;
+  const ay = (anchorY === undefined ? canvas.clientHeight/2 : anchorY) - canvas.clientHeight/2;
+  const k = z / state.zoom;
+  state.cameraOffset.x = ax - (ax - state.cameraOffset.x) * k;
+  state.cameraOffset.y = ay - (ay - state.cameraOffset.y) * k;
+  state.zoom = z;
+  state.size = state.baseSize * state.zoom;
+  return true;
+}
+
+function applyPan(dx, dy){
+  state.cameraOffset.x += dx;
+  state.cameraOffset.y += dy;
+}
+
+// Конец шага жеста: подрезать, обновить кнопку и нарисовать кадр.
+// Рисуем через rAF, чтобы серия touchmove не давала лишних кадров на слабом телефоне.
+let cameraFrame = 0;
+function commitCamera(){
+  clampCameraOffset();
+  updateRecenterButton();
+  if(cameraFrame) return;
+  cameraFrame = requestAnimationFrame(()=>{ cameraFrame = 0; draw(); });
+}
+
+function setZoom(newZoom, anchorX, anchorY){
+  if(applyZoom(newZoom, anchorX, anchorY)) commitCamera();
+}
+
+// Не даём уехать от игрока дальше полутора экранов - иначе легко потеряться
+function clampCameraOffset(){
+  const limX = canvas.clientWidth  * 1.5;
+  const limY = canvas.clientHeight * 1.5;
+  state.cameraOffset.x = clamp(state.cameraOffset.x, -limX, limX);
+  state.cameraOffset.y = clamp(state.cameraOffset.y, -limY, limY);
+}
+
+function panCamera(dx, dy){
+  applyPan(dx, dy);
+  commitCamera();
+}
+
+// Вернуть камеру к игроку и сбросить масштаб
+function recenterCamera(){
+  state.cameraOffset.x = 0;
+  state.cameraOffset.y = 0;
+  state.zoom = 1;
+  state.size = state.baseSize;
+  updateRecenterButton();
+  draw();
+}
+
+// Кнопка возврата к игроку показывается, только когда камера сдвинута
+function updateRecenterButton(){
+  const btn = document.getElementById('recenterBtn');
+  if(!btn) return;
+  const moved = Math.abs(state.cameraOffset.x) > 8 || Math.abs(state.cameraOffset.y) > 8
+             || Math.abs(state.zoom - 1) > 0.02;
+  btn.classList.toggle('visible', moved);
 }
 
 function drawHex(x,y,size,fill,stroke,w=2){
@@ -3250,11 +3389,17 @@ function closeBeaconDialog(){
    ИГРОВАЯ ЛОГИКА: клики, ходы, ресурсы и очки
    ========== */
 canvas.addEventListener('click', onPointer);
-canvas.addEventListener('touchstart', (e)=>{ e.preventDefault(); onPointer(e.touches[0]); }, {passive:false});
 canvas.addEventListener('mousemove', onMouseMove);
 canvas.addEventListener('mousedown', onMouseDown);
 canvas.addEventListener('mouseup', onMouseUp);
+canvas.addEventListener('mouseleave', onMouseUp);
+canvas.addEventListener('wheel', onWheel, {passive:false});
 canvas.addEventListener('contextmenu', (e)=>e.preventDefault()); // отключаем контекстное меню
+// Палец: один - ход или панорама, два - пинч-зум; см. блок ЖЕСТЫ ниже
+canvas.addEventListener('touchstart', onTouchStart, {passive:false});
+canvas.addEventListener('touchmove',  onTouchMove,  {passive:false});
+canvas.addEventListener('touchend',   onTouchEnd,   {passive:false});
+canvas.addEventListener('touchcancel',onTouchCancel,{passive:false});
 
 function localToMap(x,y){
   const playerPix = axialToPixel(state.player.q, state.player.r, state.size);
@@ -3334,26 +3479,34 @@ function isValidMove(q,r){
   return false;
 }
 
+// Порог, после которого движение считается перетаскиванием, а не кликом (px)
+const DRAG_SLOP = 8;
+const mouseDrag = { active:false, button:0, moved:false, lastX:0, lastY:0, startX:0, startY:0 };
+let suppressClick = false; // после перетаскивания браузерный click игнорируем
+
 function onMouseDown(evt){
   if(state.over) return;
-  if(evt.button === 2){ // правая кнопка мыши
+  const rect = canvas.getBoundingClientRect();
+  const x = evt.clientX - rect.left, y = evt.clientY - rect.top;
+  mouseDrag.active = true;
+  mouseDrag.button = evt.button;
+  mouseDrag.moved  = false;
+  mouseDrag.startX = mouseDrag.lastX = x;
+  mouseDrag.startY = mouseDrag.lastY = y;
+  if(evt.button === 2){ // правой тянем сразу, без порога
+    mouseDrag.moved = true;
     state.isDragging = true;
-    const rect = canvas.getBoundingClientRect();
-    state.dragStart = {
-      x: evt.clientX - rect.left,
-      y: evt.clientY - rect.top,
-      offsetX: state.cameraOffset.x,
-      offsetY: state.cameraOffset.y
-    };
     canvas.style.cursor = 'grabbing';
   }
 }
 
 function onMouseUp(evt){
-  if(evt.button === 2){ // правая кнопка мыши
-    state.isDragging = false;
-    canvas.style.cursor = 'pointer';
-  }
+  if(!mouseDrag.active) return;
+  // Левой кнопкой тянули камеру - гасим click, чтобы игрок не сходил с места
+  if(mouseDrag.moved && mouseDrag.button === 0) suppressClick = true;
+  mouseDrag.active = false;
+  state.isDragging = false;
+  canvas.style.cursor = 'pointer';
 }
 
 function onMouseMove(evt){
@@ -3362,13 +3515,20 @@ function onMouseMove(evt){
   const mouseX = evt.clientX - rect.left;
   const mouseY = evt.clientY - rect.top;
   
-  // Если перетаскиваем камеру
-  if(state.isDragging){
-    const dx = mouseX - state.dragStart.x;
-    const dy = mouseY - state.dragStart.y;
-    state.cameraOffset.x = state.dragStart.offsetX + dx;
-    state.cameraOffset.y = state.dragStart.offsetY + dy;
-    draw();
+  // Если тянем камеру мышью
+  if(mouseDrag.active){
+    if(!mouseDrag.moved){
+      // левая кнопка начинает панораму только после порога, иначе это клик
+      if(Math.hypot(mouseX - mouseDrag.startX, mouseY - mouseDrag.startY) < DRAG_SLOP){
+        mouseDrag.lastX = mouseX; mouseDrag.lastY = mouseY;
+        return;
+      }
+      mouseDrag.moved = true;
+      state.isDragging = true;
+      canvas.style.cursor = 'grabbing';
+    }
+    panCamera(mouseX - mouseDrag.lastX, mouseY - mouseDrag.lastY);
+    mouseDrag.lastX = mouseX; mouseDrag.lastY = mouseY;
     return;
   }
   
@@ -3387,10 +3547,117 @@ function onMouseMove(evt){
   }
 }
 
+/* ==========
+   ЖЕСТЫ: палец и колесо мыши
+   Один палец: сдвинулся дальше порога - панорама, иначе ход.
+   Два пальца: пинч-зум с якорем в середине между пальцами + панорама.
+   ========== */
+const TAP_SLOP = 12;   // px, в пределах которых касание ещё считается тапом
+const touchGesture = {
+  mode: 'none',        // none | tap | pan | pinch
+  startX:0, startY:0,
+  lastX:0, lastY:0,
+  startDist:0, startZoom:1,
+  midX:0, midY:0,
+  multi:false          // в жесте участвовал второй палец - тап уже не засчитываем
+};
+
+function touchLocal(t){
+  const rect = canvas.getBoundingClientRect();
+  return { x: t.clientX - rect.left, y: t.clientY - rect.top };
+}
+
+function onTouchStart(e){
+  e.preventDefault();
+  if(state.over) return;
+  if(e.touches.length === 1){
+    const p = touchLocal(e.touches[0]);
+    touchGesture.mode = 'tap';
+    touchGesture.multi = false;
+    touchGesture.startX = touchGesture.lastX = p.x;
+    touchGesture.startY = touchGesture.lastY = p.y;
+  } else if(e.touches.length >= 2){
+    const a = touchLocal(e.touches[0]), b = touchLocal(e.touches[1]);
+    touchGesture.mode = 'pinch';
+    touchGesture.multi = true;
+    touchGesture.startDist = Math.max(1, Math.hypot(a.x-b.x, a.y-b.y));
+    touchGesture.startZoom = state.zoom;
+    touchGesture.midX = (a.x+b.x)/2;
+    touchGesture.midY = (a.y+b.y)/2;
+  }
+}
+
+function onTouchMove(e){
+  e.preventDefault();
+  if(state.over) return;
+
+  if(touchGesture.mode === 'pinch' && e.touches.length >= 2){
+    const a = touchLocal(e.touches[0]), b = touchLocal(e.touches[1]);
+    const dist = Math.max(1, Math.hypot(a.x-b.x, a.y-b.y));
+    const midX = (a.x+b.x)/2, midY = (a.y+b.y)/2;
+    // двумя пальцами можно и таскать: середина между ними ведёт камеру
+    applyPan(midX - touchGesture.midX, midY - touchGesture.midY);
+    applyZoom(touchGesture.startZoom * (dist / touchGesture.startDist), midX, midY);
+    touchGesture.midX = midX; touchGesture.midY = midY;
+    commitCamera();
+    return;
+  }
+
+  if(e.touches.length === 1 && (touchGesture.mode === 'tap' || touchGesture.mode === 'pan')){
+    const p = touchLocal(e.touches[0]);
+    if(touchGesture.mode === 'tap'){
+      // пока палец в пределах порога - это ещё возможный ход, камеру не трогаем
+      if(Math.hypot(p.x - touchGesture.startX, p.y - touchGesture.startY) < TAP_SLOP){
+        touchGesture.lastX = p.x; touchGesture.lastY = p.y;
+        return;
+      }
+      touchGesture.mode = 'pan';
+    }
+    applyPan(p.x - touchGesture.lastX, p.y - touchGesture.lastY);
+    touchGesture.lastX = p.x; touchGesture.lastY = p.y;
+    commitCamera();
+  }
+}
+
+function onTouchEnd(e){
+  e.preventDefault();
+  if(state.over){ touchGesture.mode = 'none'; return; }
+
+  // Палец поднят там же, где опустился, и второго не было - это ход
+  if(touchGesture.mode === 'tap' && !touchGesture.multi && e.changedTouches.length){
+    onPointer(e.changedTouches[0]);
+  }
+
+  if(e.touches.length === 0){
+    touchGesture.mode = 'none';
+  } else if(e.touches.length === 1){
+    // после пинча остался один палец - продолжаем панорамой, ход не засчитываем
+    const p = touchLocal(e.touches[0]);
+    touchGesture.mode = 'pan';
+    touchGesture.multi = true;
+    touchGesture.lastX = p.x; touchGesture.lastY = p.y;
+  }
+}
+
+function onTouchCancel(){
+  touchGesture.mode = 'none';
+}
+
+function onWheel(e){
+  if(state.over) return;
+  e.preventDefault();
+  const rect = canvas.getBoundingClientRect();
+  // deltaMode: 0 - пиксели, 1 - строки, 2 - страницы
+  const unit = e.deltaMode === 1 ? 16 : (e.deltaMode === 2 ? canvas.clientHeight : 1);
+  setZoom(state.zoom * Math.exp(-e.deltaY * unit * 0.0015), e.clientX - rect.left, e.clientY - rect.top);
+}
+
 function onPointer(evt){
   if(state.over) return;
   // Игнорируем клик если это была правая кнопка мыши (перетаскивание)
   if(evt.button === 2) return;
+  // Игнорируем click, завершивший перетаскивание камеры
+  if(suppressClick){ suppressClick = false; return; }
   // Игнорируем клики во время анимации
   if(state.playerAnimation.isAnimating) return;
   
@@ -4584,6 +4851,11 @@ function updateInventory(){
     
     inventorySlots.appendChild(slot);
   }
+
+  // Пустая панель инвентаря раньше висела чёрным квадратом поверх экрана
+  const hasVisibleItem = inventorySlots.querySelector('.slot .itemIcon') !== null;
+  document.getElementById('inventory').style.display =
+    (state.currentScreen === 'game' && hasVisibleItem) ? 'block' : 'none';
 }
 
 // Функция для получения данных предмета по ID
@@ -4948,6 +5220,10 @@ function updateQuestUI(){
    СТАРТ/РЕСТАРТ
    ========== */
 function newGame(){
+  // каждая партия начинается с камеры на игроке и обычного масштаба
+  state.zoom = 1;
+  state.size = state.baseSize;
+
   state.score=0;
   state.coinsInGame=0;
   state.monstersKilled=0;
@@ -5117,7 +5393,8 @@ function showScreen(screen){
   document.getElementById('buttons').style.display = screen === 'game' ? '' : 'none';
   document.getElementById('soundButtons').style.display = screen === 'game' ? 'flex' : 'none';
   document.getElementById('devCheats').style.display = (screen === 'game' && state.devMode) ? 'flex' : 'none';
-  document.getElementById('inventory').style.display = screen === 'game' ? 'block' : 'none';
+  updateInventory(); // сам решает, показывать ли панель (пустую - нет)
+  updateRecenterButton();
   
   if(screen === 'menu'){
     updateMenuStats();
