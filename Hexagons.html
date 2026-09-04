@@ -24,13 +24,13 @@
   #wrap{position:relative;height:100%;overflow:hidden;}
   canvas{position:absolute;inset:0;display:block;touch-action:none;cursor:pointer;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;}
   /* HUD */
-  .hud{position:absolute;left:calc(8px + env(safe-area-inset-left));top:calc(8px + env(safe-area-inset-top));display:flex;flex-direction:column;gap:8px;align-items:flex-start;z-index:2}
+  .hud{position:absolute;left:max(8px, env(safe-area-inset-left));top:max(8px, env(safe-area-inset-top));display:flex;flex-direction:column;gap:8px;align-items:flex-start;z-index:2}
   .meter{display:flex;align-items:center;gap:6px;background:rgba(0,0,0,.35);padding:6px 10px;border-radius:10px;backdrop-filter: blur(4px);}
   .meter b{font-weight:600}
   .meter .icons{display:flex;gap:4px}
   .icon{font-size:20px;line-height:1}
   .counter{min-width:24px;text-align:center;font-variant-numeric:tabular-nums}
-  #scoreBox{position:absolute;right:calc(8px + env(safe-area-inset-right));top:calc(8px + env(safe-area-inset-top));display:flex;flex-direction:column;gap:8px;z-index:2}
+  #scoreBox{position:absolute;right:max(8px, env(safe-area-inset-right));top:max(8px, env(safe-area-inset-top));display:flex;flex-direction:column;gap:8px;z-index:2}
   #scoreBox .card{background:rgba(0,0,0,.35);padding:8px 12px;border-radius:10px;backdrop-filter: blur(4px);min-width:120px;text-align:center;font-size:14px;font-weight:600}
   #questBox{position:absolute;bottom:60px;left:50%;transform:translateX(-50%);z-index:2;min-width:280px;max-width:400px}
   #questBox .questContent{background:rgba(0,0,0,.4);padding:10px 14px;border-radius:12px;backdrop-filter:blur(6px);display:flex;align-items:center;gap:10px;border:2px solid rgba(102,126,234,0.5);box-shadow:0 4px 12px rgba(0,0,0,.3)}
@@ -43,7 +43,7 @@
   #questBox .questProgressFill{height:100%;background:linear-gradient(90deg, #667eea 0%, #764ba2 100%);transition:width 0.3s ease}
   #questBox .questProgressText{font-size:11px;color:#ccc;min-width:40px}
   #questBox .questReward{font-size:16px;font-weight:700;color:#ffd700;white-space:nowrap}
-  #buttons{position:absolute;right:8px;bottom:calc(8px + env(safe-area-inset-bottom));display:flex;gap:8px;z-index:2}
+  #buttons{position:absolute;right:8px;bottom:max(8px, env(safe-area-inset-bottom));display:flex;gap:8px;z-index:2}
   button{background:#ffffff; border:0; color:#111; padding:10px 14px; border-radius:10px; font-weight:600}
   button:active{transform:translateY(1px)}
   /* Game over overlay */
@@ -74,13 +74,13 @@
   }
   /* Mobile Optimizations */
   @media (max-width:640px){
-    .hud{gap:6px}
+    .hud{left:max(4px, env(safe-area-inset-left));top:max(4px, env(safe-area-inset-top));gap:6px}
     .meter{padding:4px 8px;gap:4px;border-radius:8px}
     .icon{font-size:18px}
     .counter{font-size:14px;min-width:20px}
-    #scoreBox{right:4px;top:4px;gap:6px}
+    #scoreBox{right:max(4px, env(safe-area-inset-right));top:max(4px, env(safe-area-inset-top));gap:6px}
     #scoreBox .card{padding:6px 10px;font-size:14px;min-width:100px}
-    #questBox{bottom:calc(56px + env(safe-area-inset-bottom));min-width:240px;max-width:calc(100vw - 16px)}
+    #questBox{bottom:calc(52px + max(4px, env(safe-area-inset-bottom)));min-width:240px;max-width:calc(100vw - 16px)}
     #questBox .questContent{padding:8px 10px;gap:8px}
     #questBox .questIcon{font-size:24px}
     #questBox .questTitle{font-size:10px}
@@ -88,8 +88,8 @@
     #questBox .questProgressText{font-size:10px}
     #questBox .questReward{font-size:14px}
     /* Нижняя панель: одна строка значков вместо переносящегося текста */
-    #buttons{right:calc(4px + env(safe-area-inset-right));left:auto;
-      bottom:calc(4px + env(safe-area-inset-bottom));gap:6px;flex-wrap:nowrap}
+    #buttons{right:max(4px, env(safe-area-inset-right));left:auto;
+      bottom:max(4px, env(safe-area-inset-bottom));gap:6px;flex-wrap:nowrap}
     #buttons button{width:44px;height:44px;padding:0;font-size:0;line-height:1;
       display:flex;align-items:center;justify-content:center}
     #buttons button::before{content:attr(data-short);font-size:20px}
@@ -104,12 +104,12 @@
     .icon{font-size:16px}
     #scoreBox{gap:4px}
     #scoreBox .card{padding:4px 10px;font-size:12px;min-width:90px}
-    #buttons{right:calc(4px + env(safe-area-inset-right));left:auto;
-      bottom:calc(4px + env(safe-area-inset-bottom));gap:6px;flex-wrap:nowrap}
+    #buttons{right:max(4px, env(safe-area-inset-right));left:auto;
+      bottom:max(4px, env(safe-area-inset-bottom));gap:6px;flex-wrap:nowrap}
     #buttons button{width:40px;height:40px;padding:0;font-size:0;line-height:1;
       display:flex;align-items:center;justify-content:center}
     #buttons button::before{content:attr(data-short);font-size:18px}
-    #questBox{bottom:calc(50px + env(safe-area-inset-bottom));min-width:220px}
+    #questBox{bottom:calc(46px + max(4px, env(safe-area-inset-bottom)));min-width:220px}
     #questBox .questContent{padding:6px 10px;gap:8px}
     #questBox .questIcon{font-size:20px}
     #questBox .questText{font-size:12px}
@@ -117,12 +117,12 @@
     .notification{padding:5px 9px;font-size:11px}
   }
   @media (max-width:400px){
-    .hud{left:4px;top:4px;gap:4px}
+    .hud{left:max(4px, env(safe-area-inset-left));top:max(4px, env(safe-area-inset-top));gap:4px}
     .meter{padding:3px 6px;gap:3px}
     .icon{font-size:16px}
     .counter{font-size:12px}
     #scoreBox .card{padding:5px 8px;font-size:12px;min-width:90px}
-    #questBox{bottom:calc(52px + env(safe-area-inset-bottom));min-width:200px}
+    #questBox{bottom:calc(48px + max(4px, env(safe-area-inset-bottom)));min-width:200px}
     #questBox .questContent{padding:6px 8px;gap:6px}
     #questBox .questIcon{font-size:20px}
     #questBox .questTitle{font-size:9px}
@@ -135,7 +135,7 @@
     .notification{padding:5px 8px;font-size:10px;border-width:1px}
   }
   /* Main Menu */
-  #mainMenu{position:absolute;inset:0;display:none;place-items:center;background:linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);z-index:5;;overflow-y:auto;overscroll-behavior:contain;padding:12px 0 calc(12px + env(safe-area-inset-bottom))}
+  #mainMenu{position:absolute;inset:0;display:none;place-items:center;background:linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);z-index:5;overflow-y:auto;overscroll-behavior:contain;padding:max(12px, env(safe-area-inset-top)) 0 max(12px, env(safe-area-inset-bottom))}
   #mainMenu .container{text-align:center;padding:30px;max-width:500px;margin:auto}
   #mainMenu h1{font-size:56px;margin:0 0 10px;background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-shadow:0 2px 20px rgba(102,126,234,0.3)}
   #mainMenu .subtitle{font-size:18px;color:#b0b0d0;margin:0 0 30px}
@@ -220,7 +220,7 @@
   .shopDivider{grid-column:1/-1}
   
   /* Инвентарь в игре */
-  #inventory{position:absolute;left:calc(12px + env(safe-area-inset-left));top:50%;transform:translateY(-50%);z-index:2;display:none}
+  #inventory{position:absolute;left:max(12px, env(safe-area-inset-left));top:50%;transform:translateY(-50%);z-index:2;display:none}
   #inventory .inventorySlots{display:flex;flex-direction:column;gap:8px}
   #inventory .slot{width:60px;height:60px;background:rgba(0,0,0,0.7);border:2px solid #666;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.3s;position:relative}
   #inventory .slot:hover{border-color:#ffd700;background:rgba(0,0,0,0.8)}
@@ -252,8 +252,8 @@
   #continueGame .continueMeta{display:block;font-size:12px;font-weight:500;opacity:.75;margin-top:2px}
 
   /* Правый стек кнопок над нижней панелью */
-  #soundButtons{position:absolute;right:calc(8px + env(safe-area-inset-right));
-    bottom:calc(60px + env(safe-area-inset-bottom));flex-direction:column;gap:6px;z-index:2;align-items:flex-end}
+  #soundButtons{position:absolute;right:max(8px, env(safe-area-inset-right));
+    bottom:calc(52px + max(8px, env(safe-area-inset-bottom)));flex-direction:column;gap:6px;z-index:2;align-items:flex-end}
   /* Кнопка возврата камеры к игроку: появляется, только когда камера уехала */
   #recenterBtn{width:44px;height:44px;padding:0;display:none;align-items:center;justify-content:center;
     font-size:20px;line-height:1;background:rgba(0,0,0,.45);color:#fff;
@@ -264,7 +264,7 @@
   /* Hide game UI when not playing */
   .hideWhenNotPlaying{display:none}
   /* Event dialog */
-  #eventDialog{position:absolute;inset:0;display:none;place-items:center;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);z-index:10;overflow-y:auto;overscroll-behavior:contain;padding:12px 0 calc(12px + env(safe-area-inset-bottom))}
+  #eventDialog{position:absolute;inset:0;display:none;place-items:center;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);z-index:10;overflow-y:auto;overscroll-behavior:contain;padding:max(12px, env(safe-area-inset-top)) 0 max(12px, env(safe-area-inset-bottom))}
   #eventDialog .panel{margin:auto;background:#1a1a2e;padding:24px;border-radius:16px;text-align:center;width:min(92vw,480px);border:2px solid #667eea;box-shadow:0 10px 40px rgba(0,0,0,.6)}
   #eventDialog h3{margin:0 0 16px;font-size:24px;color:#667eea}
   #eventDialog .eventResources{display:flex;justify-content:center;gap:16px;margin-bottom:16px;flex-wrap:wrap}
@@ -283,7 +283,7 @@
   #eventDialog .continueBtn.show{display:inline-block}
   #eventDialog .continueBtn:hover{background:#7a8ef5}
   /* Dragon Death Dialog */
-  #dragonDeathDialog{position:absolute;inset:0;display:none;place-items:center;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);z-index:15;overflow-y:auto;overscroll-behavior:contain;padding:12px 0 calc(12px + env(safe-area-inset-bottom))}
+  #dragonDeathDialog{position:absolute;inset:0;display:none;place-items:center;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);z-index:15;overflow-y:auto;overscroll-behavior:contain;padding:max(12px, env(safe-area-inset-top)) 0 max(12px, env(safe-area-inset-bottom))}
   #dragonDeathDialog .panel{margin:auto;background:linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);padding:40px;border-radius:20px;text-align:center;width:min(92vw,500px);border:3px solid #ff5a6a;box-shadow:0 0 60px rgba(255,90,106,0.8), 0 10px 50px rgba(0,0,0,.9);animation:dragonDeathShake 0.5s}
   #dragonDeathDialog .dragonIcon{font-size:120px;margin:20px 0;animation:dragonDeathPulse 2s infinite}
   #dragonDeathDialog h2{font-size:36px;margin:20px 0;color:#ff5a6a;text-shadow:0 0 20px rgba(255,90,106,0.8)}
@@ -293,7 +293,7 @@
   @keyframes dragonDeathShake{0%,100%{transform:translateX(0)}10%,30%,50%,70%,90%{transform:translateX(-10px)}20%,40%,60%,80%{transform:translateX(10px)}}
   @keyframes dragonDeathPulse{0%,100%{transform:scale(1);filter:brightness(1)}50%{transform:scale(1.1);filter:brightness(1.3)}}
   /* Octopus Death Dialog */
-  #octopusDeathDialog{position:absolute;inset:0;display:none;place-items:center;background:rgba(0,0,40,.95);backdrop-filter:blur(8px);z-index:15;overflow-y:auto;overscroll-behavior:contain;padding:12px 0 calc(12px + env(safe-area-inset-bottom))}
+  #octopusDeathDialog{position:absolute;inset:0;display:none;place-items:center;background:rgba(0,0,40,.95);backdrop-filter:blur(8px);z-index:15;overflow-y:auto;overscroll-behavior:contain;padding:max(12px, env(safe-area-inset-top)) 0 max(12px, env(safe-area-inset-bottom))}
   #octopusDeathDialog .panel{margin:auto;background:linear-gradient(135deg, #0a1929 0%, #001529 100%);padding:40px;border-radius:20px;text-align:center;width:min(92vw,500px);border:3px solid #6a5aff;box-shadow:0 0 60px rgba(106,90,255,0.8), 0 10px 50px rgba(0,0,0,.9);animation:octopusShake 0.5s}
   #octopusDeathDialog .octopusIcon{font-size:120px;margin:20px 0;animation:octopusTentacles 2s infinite}
   #octopusDeathDialog h2{font-size:36px;margin:20px 0;color:#6a5aff;text-shadow:0 0 20px rgba(106,90,255,0.8)}
@@ -303,7 +303,7 @@
   @keyframes octopusShake{0%,100%{transform:translateX(0) rotate(0deg)}10%,30%,50%,70%,90%{transform:translateX(-8px) rotate(-2deg)}20%,40%,60%,80%{transform:translateX(8px) rotate(2deg)}}
   @keyframes octopusTentacles{0%,100%{transform:scale(1) rotate(0deg)}25%{transform:scale(1.05) rotate(-5deg)}50%{transform:scale(0.95) rotate(0deg)}75%{transform:scale(1.05) rotate(5deg)}}
   /* Octopus Victory Dialog */
-  #octopusVictoryDialog{position:absolute;inset:0;display:none;place-items:center;background:rgba(0,0,40,.95);backdrop-filter:blur(8px);z-index:15;overflow-y:auto;overscroll-behavior:contain;padding:12px 0 calc(12px + env(safe-area-inset-bottom))}
+  #octopusVictoryDialog{position:absolute;inset:0;display:none;place-items:center;background:rgba(0,0,40,.95);backdrop-filter:blur(8px);z-index:15;overflow-y:auto;overscroll-behavior:contain;padding:max(12px, env(safe-area-inset-top)) 0 max(12px, env(safe-area-inset-bottom))}
   #octopusVictoryDialog .panel{margin:auto;background:linear-gradient(135deg, #0a1929 0%, #001a3d 100%);padding:40px;border-radius:20px;text-align:center;width:min(92vw,500px);border:3px solid #4aff8a;box-shadow:0 0 60px rgba(74,255,138,0.8), 0 10px 50px rgba(0,0,0,.9);animation:octopusVictoryBounce 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55)}
   #octopusVictoryDialog .octopusIcon{font-size:120px;margin:20px 0;animation:octopusVictorySpin 3s infinite}
   #octopusVictoryDialog h2{font-size:36px;margin:20px 0;color:#4aff8a;text-shadow:0 0 20px rgba(74,255,138,0.8)}
@@ -313,7 +313,7 @@
   @keyframes octopusVictoryBounce{0%{transform:scale(0.3);opacity:0}50%{transform:scale(1.05)}100%{transform:scale(1);opacity:1}}
   @keyframes octopusVictorySpin{0%{transform:rotate(0deg) scale(1)}25%{transform:rotate(-10deg) scale(1.05)}50%{transform:rotate(10deg) scale(1)}75%{transform:rotate(-10deg) scale(1.05)}100%{transform:rotate(0deg) scale(1)}}
   /* Treasure Dialog */
-  #treasureDialog{position:absolute;inset:0;display:none;place-items:center;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);z-index:15;overflow-y:auto;overscroll-behavior:contain;padding:12px 0 calc(12px + env(safe-area-inset-bottom))}
+  #treasureDialog{position:absolute;inset:0;display:none;place-items:center;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);z-index:15;overflow-y:auto;overscroll-behavior:contain;padding:max(12px, env(safe-area-inset-top)) 0 max(12px, env(safe-area-inset-bottom))}
   #treasureDialog .panel{margin:auto;background:linear-gradient(135deg, #ffd700 0%, #ffed4e 50%, #ffd700 100%);padding:40px;border-radius:20px;text-align:center;width:min(92vw,500px);border:3px solid #fff;box-shadow:0 0 60px rgba(255,215,0,0.8), 0 10px 50px rgba(0,0,0,.9);animation:treasureBounce 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55)}
   #treasureDialog .treasureIcon{font-size:120px;margin:20px 0;animation:treasureSpin 3s infinite}
   #treasureDialog h2{font-size:36px;margin:20px 0;color:#1a1a2e;text-shadow:0 2px 4px rgba(255,255,255,0.5)}
@@ -324,7 +324,7 @@
   @keyframes treasureBounce{0%{transform:scale(0.3) rotate(-5deg);opacity:0}50%{transform:scale(1.05) rotate(2deg)}100%{transform:scale(1) rotate(0);opacity:1}}
   @keyframes treasureSpin{0%{transform:rotate(0deg) scale(1)}25%{transform:rotate(-5deg) scale(1.05)}50%{transform:rotate(5deg) scale(1)}75%{transform:rotate(-5deg) scale(1.05)}100%{transform:rotate(0deg) scale(1)}}
   /* Phoenix Revival Dialog */
-  #phoenixDialog{position:absolute;inset:0;display:none;place-items:center;background:rgba(255,100,0,.85);backdrop-filter:blur(8px);z-index:15;overflow-y:auto;overscroll-behavior:contain;padding:12px 0 calc(12px + env(safe-area-inset-bottom))}
+  #phoenixDialog{position:absolute;inset:0;display:none;place-items:center;background:rgba(255,100,0,.85);backdrop-filter:blur(8px);z-index:15;overflow-y:auto;overscroll-behavior:contain;padding:max(12px, env(safe-area-inset-top)) 0 max(12px, env(safe-area-inset-bottom))}
   #phoenixDialog .panel{margin:auto;background:linear-gradient(135deg, #ff6b35 0%, #f7931e 50%, #ff6b35 100%);padding:40px;border-radius:20px;text-align:center;width:min(92vw,500px);border:3px solid #fff;box-shadow:0 0 60px rgba(255,107,53,0.8), 0 10px 50px rgba(0,0,0,.9);animation:phoenixRevival 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55)}
   #phoenixDialog .phoenixIcon{font-size:120px;margin:20px 0;animation:phoenixFlame 2s infinite}
   #phoenixDialog h2{font-size:36px;margin:20px 0;color:#fff;text-shadow:0 2px 4px rgba(0,0,0,0.5)}
@@ -336,7 +336,7 @@
   @keyframes phoenixRevival{0%{transform:scale(0.3) rotate(-5deg);opacity:0}50%{transform:scale(1.05) rotate(2deg)}100%{transform:scale(1) rotate(0);opacity:1}}
   @keyframes phoenixFlame{0%,100%{transform:scale(1) rotate(0deg)}25%{transform:scale(1.1) rotate(-2deg)}50%{transform:scale(0.95) rotate(0deg)}75%{transform:scale(1.1) rotate(2deg)}}
   /* Bottle Message Dialog */
-  #bottleDialog{position:absolute;inset:0;display:none;place-items:center;background:rgba(0,40,80,.92);backdrop-filter:blur(8px);z-index:15;overflow-y:auto;overscroll-behavior:contain;padding:12px 0 calc(12px + env(safe-area-inset-bottom))}
+  #bottleDialog{position:absolute;inset:0;display:none;place-items:center;background:rgba(0,40,80,.92);backdrop-filter:blur(8px);z-index:15;overflow-y:auto;overscroll-behavior:contain;padding:max(12px, env(safe-area-inset-top)) 0 max(12px, env(safe-area-inset-bottom))}
   #bottleDialog .panel{margin:auto;background:linear-gradient(135deg, #1e3a5f 0%, #2a5a8f 100%);padding:40px;border-radius:20px;text-align:center;width:min(92vw,500px);border:3px solid #4a9eff;box-shadow:0 0 60px rgba(74,158,255,0.6), 0 10px 50px rgba(0,0,0,.9);animation:bottleBounce 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55)}
   #bottleDialog .bottleIcon{font-size:100px;margin:20px 0;animation:bottleFloat 3s infinite ease-in-out}
   #bottleDialog h2{font-size:32px;margin:20px 0;color:#4a9eff;text-shadow:0 0 20px rgba(74,158,255,0.8)}
@@ -488,15 +488,15 @@
 
   /* --- Мобильные правила, перебивающие базовые (должны идти последними) --- */
   @media (max-width:640px){
-    #soundButtons{bottom:calc(56px + env(safe-area-inset-bottom))}
+    #soundButtons{bottom:calc(50px + max(4px, env(safe-area-inset-bottom)))}
     #inventory .slot{width:48px;height:48px}
     #inventory .slot .itemIcon{font-size:20px}
   }
   @media (max-height:500px){
-    #soundButtons{bottom:calc(52px + env(safe-area-inset-bottom))}
+    #soundButtons{bottom:calc(46px + max(4px, env(safe-area-inset-bottom)))}
     #recenterBtn{width:40px;height:40px;font-size:18px}
     /* в альбоме инвентарь уходит вниз строкой, чтобы не резать поле по вертикали */
-    #inventory{top:auto;bottom:calc(4px + env(safe-area-inset-bottom));transform:none}
+    #inventory{top:auto;bottom:max(4px, env(safe-area-inset-bottom));transform:none}
     #inventory .inventorySlots{flex-direction:row}
     #inventory .slot{width:40px;height:40px}
     #inventory .slot .itemIcon{font-size:18px}
