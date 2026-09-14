@@ -1,2 +1,9 @@
 .DS_Store
 *.log
+*.command
+*.webloc
+
+# Local drafts and historical snapshots
+/Task.md
+/Versions/
+/ИНСТРУКЦИЯ_ЗВУКИ.txt
