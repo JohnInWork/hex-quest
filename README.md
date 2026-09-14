@@ -37,9 +37,7 @@ Points are awarded per tile only once, which keeps you pushing into new ground i
 
 ## Running it
 
-Open `Hexagons.html` in a browser. Sounds live in `Sounds/`, icons in `Icons/`.
-
-`Versions/` holds eight earlier builds, from the first prototype to the current one.
+Open `index.html` in a browser. Sounds live in `Sounds/`, icons in `Icons/`.
 
 ## Stack
 
